@@ -1,0 +1,27 @@
+[package]
+name = "file_classed"
+version = "0.1.0"
+edition = "2018"
+description = "Efficient yet customizable file organizer"
+license = "GPL-3.0-or-later"
+author = "Elie Le Vaillant <elielevaillant2007@gmail.com>"
+homepage = "https://gitlab.com/Eolien55/ScolarSorted"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+structopt = { version = "0.3" }
+clap = "3.0.0-beta.2"
+human-panic = "1.0"
+dirs = "4.0"
+exitcode = "1.1"
+confy = "0.4"
+clap-verbosity-flag = "0.3.2"
+ctrlc = "3.2"
+serde = {version = "1", features = ["derive"]}
+serde_yaml = "0.8"
+log = "0.4"
+
+[[bin]]
+name = "fcs"
+path = "src/main.rs"
