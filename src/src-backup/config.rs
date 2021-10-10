@@ -18,7 +18,7 @@ pub struct ConfigSerDe {
     pub once : bool,
     pub sleep : u32,
     pub codes : HashMap<String, String>,
-    pub months : HashMap<String, String>,
+    pub months : [String ; 12],
 }
 
 macro_rules! home_dir {
@@ -147,12 +147,12 @@ struct Cli {
     #[structopt(short, long, value_name="months", number_of_values = 12, multiple = false)]
     months : Option<Vec<String>>,
 
-    /// Makes the program verbose
+    /*/// Makes the program verbose
     #[structopt(flatten)]
-    verbose : clap_verbosity_flag::Verbosity,
+    verbose : clap_verbosity_flag::Verbosity,*/
 }
 
-fn get_args() -> (Config, String, [bool ; 6], log::Level) {
+fn get_args() -> (Config, String, [bool ; 6]) {
     // Processing Options
     let args = Cli::from_args();
     let mut declared : [bool ; 6] = [false, false, false, false, false, false];
@@ -163,10 +163,10 @@ fn get_args() -> (Config, String, [bool ; 6], log::Level) {
         )
     );
 
-    let mut dest : String;
+    let dest : String;
     let mut dirs : Vec<String>;
-    let mut once : bool;
-    let mut sleep : u32;
+    let once : bool;
+    let sleep : u32;
     let mut codes : HashMap<String, String> = HashMap::with_capacity(15);
     let mut months : HashMap<String, String> = HashMap::with_capacity(12);
 
@@ -247,11 +247,9 @@ fn get_args() -> (Config, String, [bool ; 6], log::Level) {
                  .collect();
     }
 
-    let verbose = args.verbose.log_level().unwrap();
-
     dirs.shrink_to_fit();
 
-    return (Config {dest, dirs, once, sleep, codes, months}, config, declared, verbose);
+    return (Config {dest, dirs, once, sleep, codes, months}, config, declared);
 }
 
 /*
@@ -336,8 +334,8 @@ BUILDING CONFIG FROM CONFIG FILE, WHILE RESPECTING PREVIOUS CONFIG
 
 */
 
-pub fn get_config_args() -> (Config, String, log::Level) {
-    let (mut config, config_file, declared, verbose) = get_args();
+pub fn get_config_args() -> (Config, String) {
+    let (mut config, config_file, declared) = get_args();
 
     let from_file : ConfigSerDe;
     match fs::read_to_string(config_file) {
@@ -349,12 +347,26 @@ pub fn get_config_args() -> (Config, String, log::Level) {
                     replace_value!(config.once, from_file.once, "once", declared);
                     replace_value!(config.sleep, from_file.sleep, "sleep", declared);
                     replace_value!(config.codes, from_file.codes, "codes", declared);
-                    replace_value!(config.months, from_file.months, "months", declared);
-                    (config, "".to_string(), verbose)
+                    let mut counter : u8 = 0;
+                    replace_value!(config.months, from_file.months.iter()
+                                                                  .map(
+                                                                      |month| {counter+=1; (which_month!(counter).to_string(), month.to_owned())
+                                                                    })
+                                                                   .collect(), "months", declared);
+                    (config, "".to_string())
                 },
-                Err(e) => (config, e.to_string(), verbose)
+                Err(e) => (config, e.to_string())
             }
         },
-        Err(_) => (config, "".to_string(), verbose)
+        Err(_) => (config, "".to_string())
     }
+}
+
+pub fn clean(mut config : Config) -> Config {
+    config.dest = String::from(shellexpand::env(&config.dest).unwrap());
+    config.dirs = config.dirs.iter()
+                             .map(|dir| (String::from(shellexpand::env(&dir).unwrap())))
+                             .collect();
+    
+    return config;
 }

@@ -1,0 +1,36 @@
+dest: $HOME/Documents/Scolaire
+dirs:
+  - $HOME/usb
+  - $HOME/Documents/Scolaire
+
+
+once: false
+sleep: 1000
+codes:
+  chin: Chinois
+  eps: EPS
+  en: Anglais
+  gr: Grec
+  pc: Physique-Chimie
+  ses: Sciences Économiques et Sociales
+  svt: SVT
+  glb: Global
+  fr: Français
+  hg: Histoire-Géographie
+  mt: Mathématiques
+  info: Informatique
+  vdc: Vie de Classe
+
+months:
+  - Janvier
+  - Février
+  - Mars
+  - Avril
+  - Mai
+  - Juin
+  - Juillet
+  - Août
+  - Septembre
+  - Octobre
+  - Novembre
+  - Décembre

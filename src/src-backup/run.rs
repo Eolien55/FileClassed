@@ -13,7 +13,7 @@ fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>, m
 
     println!("Handling file {:?}", name);
 
-    let _timestamp = fs::metadata(name).unwrap().created();
+    let timestamp = fs::metadata(name).unwrap().created();
 }
 
 pub fn run(my_config : config::Config) -> (u16,) {

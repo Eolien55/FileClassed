@@ -11,16 +11,14 @@ homepage = "https://gitlab.com/Eolien55/ScolarSorted"
 
 [dependencies]
 structopt = { version = "0.3" }
-clap = "3.0.0-beta.2"
 human-panic = "1.0"
 dirs = "4.0"
 exitcode = "1.1"
-confy = "0.4"
-clap-verbosity-flag = "0.3.2"
 ctrlc = "3.2"
 serde = {version = "1", features = ["derive"]}
 serde_yaml = "0.8"
-log = "0.4"
+shellexpand = "2.1"
+scan_dir = "0.3"
 
 [[bin]]
 name = "fcs"
