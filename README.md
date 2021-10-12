@@ -1,4 +1,4 @@
-# ScolarSorted
+# FileCLassed
 
 Efficient, lightweight, configurable file organizer. This project is very simple : it takes a file in certains directories (that can be configured), then organize them, and sends them to one directory (that can be configured, too).
 
@@ -29,8 +29,6 @@ Then, you should have a new program named fcs that works as stated before.
 ## Configuring
 
 See `fcs --help` and fcs.yml in the repo.
-
-(c) Eolien55, 2021
 
 This program is free software (as stated in LICENSE), and published under the GPLv3 license.
 
