@@ -1,10 +1,9 @@
 [package]
 name = "file_classed"
-version = "0.5.0"
+version = "1.0.0"
 edition = "2018"
 description = "Efficient yet customizable file organizer"
 license = "GPL-3.0-or-later"
-author = "Elie Le Vaillant <elielevaillant2007@gmail.com>"
 homepage = "https://gitlab.com/Eolien55/ScolarSorted"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

@@ -124,11 +124,11 @@ struct Cli {
     verbose : clap_verbosity_flag::Verbosity,
 }
 
-pub fn get_verbose() -> log::Level {
+pub fn get_verbose() -> Option<log::Level> {
     let mut verbose = Cli::from_args().verbose;
     verbose.set_default(Some(log::Level::Warn));
 
-    return verbose.log_level().unwrap();
+    return verbose.log_level();
 }
 
 fn get_args() -> (Config, String, [bool ; 5]) {

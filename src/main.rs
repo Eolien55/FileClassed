@@ -4,7 +4,7 @@ use simple_logger::init_with_level;
 
 fn main() {
     let verbose = config::get_verbose();
-    init_with_level(verbose).unwrap();
+    init_with_level(verbose.unwrap_or(log::Level::Error)).unwrap();
 
     log::trace!("Setting up human panic");
     human_panic::setup_panic!();
