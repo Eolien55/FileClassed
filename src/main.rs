@@ -1,19 +1,27 @@
 use std::process::exit;
-use file_classed::{config, run};
+use fcs::{config, run};
+use simple_logger::init_with_level;
 
 fn main() {
+    let verbose = config::get_verbose();
+    init_with_level(verbose).unwrap();
+
+    log::trace!("Setting up human panic");
     human_panic::setup_panic!();
 
-    let the_config = config::get_config_args();
+    log::trace!("Setting up the configuration");
+    let my_config = config::get_config_args();
 
-    let my_config = the_config.0;
-    let (my_config, config_errors) = config::clean(my_config);
-    if (&config_errors).into_iter().map(|entry| entry.0).any(|entry| entry == true) {
-        eprintln!("Error, exiting.");
-        exit(exitcode::OK);
+    log::trace!("Cleaning a bit configuration");
+    let (my_config, fatal) = config::clean(my_config);
+    if fatal {
+        log::info!("Goodbye");
+        exit(exitcode::DATAERR);
     }
 
+    log::trace!("Ready to do the dirty job ! Configuration is ready");
     run::run(my_config);
 
+    log::info!("Goodbye");
     exit(exitcode::OK);
 }

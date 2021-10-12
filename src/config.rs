@@ -119,9 +119,16 @@ struct Cli {
     )]
     codes : Option<Vec<(String, String)>>,
 
-    /*/// Makes the program verbose
+    /// Makes the program verbose
     #[structopt(flatten)]
-    verbose : clap_verbosity_flag::Verbosity,*/
+    verbose : clap_verbosity_flag::Verbosity,
+}
+
+pub fn get_verbose() -> log::Level {
+    let mut verbose = Cli::from_args().verbose;
+    verbose.set_default(Some(log::Level::Warn));
+
+    return verbose.log_level().unwrap();
 }
 
 fn get_args() -> (Config, String, [bool ; 5]) {
@@ -237,10 +244,12 @@ fn exists(the_path : &String) -> bool {
 }
 
 // Get config from CLI args and config file
-pub fn get_config_args() -> (Config, String) {
+pub fn get_config_args() -> Config {
+    log::trace!("Getting arguments from CLI");
     let (mut config, config_file, declared) = get_args();
 
-    match fs::read_to_string(config_file) {
+    log::trace!("Reading {} for config", config_file);
+    match fs::read_to_string(&config_file) {
         Ok(reading_file) => {
             match serde_yaml::from_str::<ConfigSerDe>(&reading_file) {
                 Ok(from_file) => {
@@ -249,21 +258,27 @@ pub fn get_config_args() -> (Config, String) {
                     replace_value!(config.once, from_file.once, "once", declared);
                     replace_value!(config.sleep, from_file.sleep, "sleep", declared);
                     replace_value!(config.codes, from_file.codes, "codes", declared);
-                    (config, "".to_string())
+                    config
                 },
-                Err(e) => (config, e.to_string())
+                Err(e) => {
+                    log::error!("Error happenned while parsing config file \"{}\". Falling back to defaults", e.to_string());
+                    config
+                },
             }
         },
-        Err(_) => (config, "".to_string())
+        Err(_) => {
+            log::error!("Config file \"{}\" doesn't exist or isn't valid UTF-8. Falling back to defaults", config_file);
+            config
+        }
     }
 }
 
 // Here, we return our cleaned config
 // ie, without non-existing directories,
-// With the warnings / error encountered
-// The bool value indicates if the error is fatal or not
-pub fn clean(mut config : Config) -> (Config, Vec<(bool, String)>) {
-    let mut warnings_errors = Vec::<(bool, String)>::with_capacity(5);
+// The bool value indicates if the config is so messed
+// up that it is unusable, and if the program should exit
+pub fn clean(mut config : Config) -> (Config, bool) {
+    let mut fatal = false;
 
     config.dest = String::from(shellexpand::env(&config.dest).unwrap());
     config.dirs = config.dirs.iter()
@@ -278,19 +293,19 @@ pub fn clean(mut config : Config) -> (Config, Vec<(bool, String)>) {
     
     let non_existing_dirs = config.dirs.difference(&existing_dirs);
     for dir in non_existing_dirs {
-        warnings_errors.push(
-            (false, format!("Watching directory {} doesn't exist. Not using it", dir))
-        );
+        log::warn!("Watching directory \"{}\" doesn't exist. Not using it", dir);
     }
 
     config.dirs = existing_dirs;
     if config.dirs.is_empty() {
-        warnings_errors.push((true, format!("No directories set up, or none of them exist !")));
+       log::error!("No directories set up, or none of them exist ! Exiting");
+       fatal = true;
     }
 
     if !exists(&config.dest) {
-        warnings_errors.push((true, format!("Destination {} doesn't exist !", config.dest)));
+        log::error!("Destination \"{}\" doesn't exist ! Exiting", config.dest);
+        fatal = true;
     }
     
-    return (config, warnings_errors);
+    return (config, fatal);
 }

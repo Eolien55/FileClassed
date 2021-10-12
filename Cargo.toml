@@ -10,18 +10,29 @@ homepage = "https://gitlab.com/Eolien55/ScolarSorted"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-structopt = { version = "0.3" }
 human-panic = "1.0"
-dirs = "4.0"
 exitcode = "1.1"
 ctrlc = "3.2"
+
 serde = {version = "1", features = ["derive"]}
 serde_yaml = "0.8"
+
+dirs = "4.0"
 shellexpand = "2.1"
 scan_dir = "0.3"
-chrono = "0.4"
 locale = "0.2"
+chrono = "0.4"
+
+log = "0.4"
+simple_logger = {version = "1.13", default_features=false, features=["stderr", "colors"]}
+
+structopt = { version = "0.3" }
+clap-verbosity-flag = "0.3"
 
 [[bin]]
 name = "fcs"
 path = "src/main.rs"
+
+[lib]
+name = "fcs"
+path = "src/lib.rs"

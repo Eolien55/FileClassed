@@ -88,19 +88,23 @@ fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>) {
 
     let result = get_new_name(&name, dest, codes, timestamp);
     
-    fs::create_dir_all(result.1).unwrap();
-    fs::rename(name, result.0).unwrap();
+    fs::create_dir_all(&result.1).unwrap();
+    fs::rename(&name, &result.0).unwrap();
+
+    log::info!("Move path from {:?} to {:?}", name, result.0)
 }
 
 pub fn run(my_config : config::Config) {
     let should_end = Arc::new(AtomicBool::new(false));
     let s = should_end.clone();
     
+    log::trace!("Setting up CTRL+C handler");
     ctrlc::set_handler(move || {
         println!("Received CTRL+C, ending.");
         s.store(true, Ordering::SeqCst)
-    }).expect("??");
-
+    }).unwrap();
+    
+    log::trace!("Starting my job");
     'outer : while !should_end.load(Ordering::SeqCst) {
         for dir in &my_config.dirs {
             let files : Vec<fs::DirEntry> = ScanDir::files().walk(dir, |iter| {

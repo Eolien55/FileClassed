@@ -114,6 +114,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap-verbosity-flag"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82234dd749fbce1abf053e6b51a57fabec14a88a46ee65c20ad3220931d054c3"
+dependencies = [
+ "log",
+ "structopt",
+]
+
+[[package]]
+name = "colored"
+version = "1.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4ffc801dacf156c5854b9df4f425a626539c3a6ef7893cc0c5084a23f0b6c59"
+dependencies = [
+ "atty",
+ "lazy_static",
+ "winapi",
+]
+
+[[package]]
 name = "ctrlc"
 version = "3.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -181,15 +202,18 @@ name = "file_classed"
 version = "0.5.0"
 dependencies = [
  "chrono",
+ "clap-verbosity-flag",
  "ctrlc",
  "dirs",
  "exitcode",
  "human-panic",
  "locale",
+ "log",
  "scan_dir",
  "serde",
  "serde_yaml",
  "shellexpand",
+ "simple_logger",
  "structopt",
 ]
 
@@ -284,6 +308,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fdbe492a9c0238da900a1165c42fc5067161ce292678a6fe80921f30fe307fd"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "log"
+version = "0.4.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]
@@ -499,6 +532,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83bdb7831b2d85ddf4a7b148aa19d0587eddbe8671a436b7bd1182eaad0f2829"
 dependencies = [
  "dirs-next",
+]
+
+[[package]]
+name = "simple_logger"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7de33c687404ec3045d4a0d437580455257c0436f858d702f244e7d652f9f07"
+dependencies = [
+ "atty",
+ "colored",
+ "log",
+ "winapi",
 ]
 
 [[package]]
