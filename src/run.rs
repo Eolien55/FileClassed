@@ -92,7 +92,7 @@ fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>) {
     fs::rename(name, result.0).unwrap();
 }
 
-pub fn run(my_config : config::Config) -> (u16,) {
+pub fn run(my_config : config::Config) {
     let should_end = Arc::new(AtomicBool::new(false));
     let s = should_end.clone();
     
@@ -101,33 +101,39 @@ pub fn run(my_config : config::Config) -> (u16,) {
         s.store(true, Ordering::SeqCst)
     }).expect("??");
 
-    let mut counter : usize = 0;
-
-    while !should_end.load(Ordering::SeqCst) {
-        let _ : Vec<Vec<_>> = 
-            my_config.dirs.iter().map(|dir| ScanDir::files().walk(dir, |iter| {
-                iter.filter(|&(_, ref name)| 
+    'outer : while !should_end.load(Ordering::SeqCst) {
+        for dir in &my_config.dirs {
+            let files : Vec<fs::DirEntry> = ScanDir::files().walk(dir, |iter| {
+                iter.filter(|&(_, ref name)| {
                     name.matches('.').count() > 1 && 
-                    my_config.codes.contains_key::<String>(
-                        &name.chars()
-                             .take(
-                                 name.find('.').unwrap()
-                                )
-                             .collect())).map(
-                                 |(entry, _)| {counter += 1;
-                                    handle(
-                                     entry.path(), &my_config.dest, &my_config.codes
-                                    )}
-                   ).collect()
-            }).unwrap()).collect();
-
-            if my_config.once {
-                break;
+                            my_config.codes.contains_key::<String>(
+                                &name.chars()
+                                     .take(
+                                         name.find('.').unwrap()
+                                        )
+                                     .collect())
+                }).map(|(entry, _)| entry)
+                  .collect()
+            }).unwrap();
+            
+            for entry in files {
+                if should_end.load(Ordering::SeqCst) {
+                    break 'outer;
+                }
+                handle(
+                    entry.path(), &my_config.dest, &my_config.codes
+                );
             }
-            sleep(time::Duration::from_millis(my_config.sleep as u64));
+
+            if should_end.load(Ordering::SeqCst) {
+                break 'outer;
+            }
+        }
+
+        if my_config.once {
+            break;
+        }
+
+        sleep(time::Duration::from_millis(my_config.sleep as u64));
     }
-
-    println!("Did {} files", counter);
-
-    return (0,);
 }
