@@ -19,6 +19,8 @@ serde = {version = "1", features = ["derive"]}
 serde_yaml = "0.8"
 shellexpand = "2.1"
 scan_dir = "0.3"
+chrono = "0.4"
+locale = "0.2"
 
 [[bin]]
 name = "fcs"

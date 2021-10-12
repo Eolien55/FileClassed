@@ -1,24 +1,22 @@
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub struct Config {
     pub dest : String,
-    pub dirs : Vec<String>,
+    pub dirs : HashSet<String>,
     pub once : bool,
-    pub sleep : u32,
+    pub sleep :usize,
     pub codes : HashMap<String, String>,
-    pub months : HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigSerDe {
     pub dest : String,
-    pub dirs : Vec<String>,
+    pub dirs : HashSet<String>,
     pub once : bool,
-    pub sleep : u32,
+    pub sleep : usize,
     pub codes : HashMap<String, String>,
-    pub months : [String ; 12],
 }
 
 macro_rules! home_dir {
@@ -35,30 +33,8 @@ macro_rules! which_declared {
             "once" => 2,
             "sleep" => 3,
             "codes" => 4,
-            "months" => 5,
-            "verbose" => 6,
-            _ => 7,
-        }
-    };
-}
-
-macro_rules! which_month {
-    ($val:expr) => {
-        match $val {
-            0 => "???",
-            1 => "Jan",
-            2 => "Feb",
-            3 => "Mar",
-            4 => "Apr",
-            5 => "May",
-            6 => "Jun",
-            7 => "Jul",
-            8 => "Aug",
-            9 => "Sep",
-            10 => "Oct",
-            11 => "Nov",
-            12 => "Dec",
-            _ => "?????",
+            "verbose" => 5,
+            _ => 6,
         }
     };
 }
@@ -132,7 +108,7 @@ struct Cli {
 
     /// Sets the how much milliseconds the program should sleep between each loop
     #[structopt(short, long, value_name = "milliseconds")]
-    sleep : Option<u32>,
+    sleep : Option<usize>,
 
     /// Shortcuts, ie meanings
     #[structopt(
@@ -143,19 +119,15 @@ struct Cli {
     )]
     codes : Option<Vec<(String, String)>>,
 
-    /// Month codes
-    #[structopt(short, long, value_name="months", number_of_values = 12, multiple = false)]
-    months : Option<Vec<String>>,
-
     /*/// Makes the program verbose
     #[structopt(flatten)]
     verbose : clap_verbosity_flag::Verbosity,*/
 }
 
-fn get_args() -> (Config, String, [bool ; 6]) {
+fn get_args() -> (Config, String, [bool ; 5]) {
     // Processing Options
     let args = Cli::from_args();
-    let mut declared : [bool ; 6] = [false, false, false, false, false, false];
+    let mut declared : [bool ; 5] = [false, false, false, false, false];
 
     let config = args.config.unwrap_or(
         format!(
@@ -166,9 +138,8 @@ fn get_args() -> (Config, String, [bool ; 6]) {
     let dest : String;
     let mut dirs : Vec<String>;
     let once : bool;
-    let sleep : u32;
-    let mut codes : HashMap<String, String> = HashMap::with_capacity(15);
-    let mut months : HashMap<String, String> = HashMap::with_capacity(12);
+    let sleep : usize;
+    let codes : HashMap<String, String>;
 
     if !args.dir.is_none() {
         dirs = args.dir.unwrap();
@@ -221,35 +192,10 @@ fn get_args() -> (Config, String, [bool ; 6]) {
                                      .collect();        
     }
 
-    if !args.months.is_none() {
-        let mut counter : u8 = 0;
-        months = args.months.unwrap().iter()
-                                     .map(|month| {counter+=1; (which_month!(counter).to_string(), month.to_owned())})
-                                     .collect();
-        declared[which_declared!("months")] = true;
-    } else {
-        let mut counter : u8 = 0;
-        months = [
-                    "Janvier",
-                    "Février",
-                    "Mars",
-                    "Avril",
-                    "Mai",
-                    "Juin",
-                    "Juillet",
-                    "Août",
-                    "Septembre",
-                    "Octobre",
-                    "Novembre",
-                    "Décembre"
-                ].iter()
-                 .map(|month| {counter+=1; (which_month!(counter).to_string(), month.to_string())})
-                 .collect();
-    }
-
     dirs.shrink_to_fit();
+    let dirs : HashSet<String> = dirs.into_iter().collect();
 
-    return (Config {dest, dirs, once, sleep, codes, months}, config, declared);
+    return (Config {dest, dirs, once, sleep, codes}, config, declared);
 }
 
 /*
@@ -276,30 +222,6 @@ BUILDING CONFIG FROM COMMAND-LINE
 
 */
 
-/*
-
-
-
-
-
-
-
-
-
-
-BUILDING CONFIG FROM CONFIG FILE, WHILE RESPECTING PREVIOUS CONFIG
-
-
-
-
-
-
-
-
-
-
-*/
-
 use std::fs;
 
 macro_rules! replace_value {
@@ -310,30 +232,11 @@ macro_rules! replace_value {
     };
 }
 
-/*
+fn exists(the_path : &String) -> bool {
+    return path::Path::new(the_path.as_str()).exists();
+}
 
-
-
-
-
-
-
-
-
-
-BUILDING CONFIG FROM CONFIG FILE, WHILE RESPECTING PREVIOUS CONFIG
-
-
-
-
-
-
-
-
-
-
-*/
-
+// Get config from CLI args and config file
 pub fn get_config_args() -> (Config, String) {
     let (mut config, config_file, declared) = get_args();
 
@@ -346,12 +249,6 @@ pub fn get_config_args() -> (Config, String) {
                     replace_value!(config.once, from_file.once, "once", declared);
                     replace_value!(config.sleep, from_file.sleep, "sleep", declared);
                     replace_value!(config.codes, from_file.codes, "codes", declared);
-                    let mut counter : u8 = 0;
-                    replace_value!(config.months, from_file.months.iter()
-                                                                  .map(
-                                                                      |month| {counter+=1; (which_month!(counter).to_string(), month.to_owned())
-                                                                    })
-                                                                   .collect(), "months", declared);
                     (config, "".to_string())
                 },
                 Err(e) => (config, e.to_string())
@@ -361,11 +258,39 @@ pub fn get_config_args() -> (Config, String) {
     }
 }
 
-pub fn clean(mut config : Config) -> Config {
+// Here, we return our cleaned config
+// ie, without non-existing directories,
+// With the warnings / error encountered
+// The bool value indicates if the error is fatal or not
+pub fn clean(mut config : Config) -> (Config, Vec<(bool, String)>) {
+    let mut warnings_errors = Vec::<(bool, String)>::with_capacity(5);
+
     config.dest = String::from(shellexpand::env(&config.dest).unwrap());
     config.dirs = config.dirs.iter()
                              .map(|dir| (String::from(shellexpand::env(&dir).unwrap())))
                              .collect();
     
-    return config;
+    let existing_dirs : HashSet<String> = 
+        config.dirs.iter()
+                   .filter(|&dir| exists(&dir))
+                   .map(|dir| String::from(dir))
+                   .collect();
+    
+    let non_existing_dirs = config.dirs.difference(&existing_dirs);
+    for dir in non_existing_dirs {
+        warnings_errors.push(
+            (false, format!("Watching directory {} doesn't exist. Not using it", dir))
+        );
+    }
+
+    config.dirs = existing_dirs;
+    if config.dirs.is_empty() {
+        warnings_errors.push((true, format!("No directories set up, or none of them exist !")));
+    }
+
+    if !exists(&config.dest) {
+        warnings_errors.push((true, format!("Destination {} doesn't exist !", config.dest)));
+    }
+    
+    return (config, warnings_errors);
 }
