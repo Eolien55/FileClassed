@@ -11,7 +11,7 @@ homepage = "https://gitlab.com/Eolien55/ScolarSorted"
 [dependencies]
 human-panic = "1.0"
 exitcode = "1.1"
-ctrlc = "3.2"
+ctrlc = { version = "3.2", features = ["termination"] }
 
 serde = {version = "1", features = ["derive"]}
 serde_yaml = "0.8"

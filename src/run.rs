@@ -173,7 +173,6 @@ pub fn run(my_config : config::Config) {
         if my_config.once {
             break;
         }
-
         sleep(time::Duration::from_millis(my_config.sleep as u64));
     }
 }
