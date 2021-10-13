@@ -1,6 +1,6 @@
 [package]
 name = "file_classed"
-version = "1.0.3"
+version = "1.0.4"
 edition = "2018"
 description = "Efficient yet customizable file organizer"
 license = "GPL-3.0-or-later"
