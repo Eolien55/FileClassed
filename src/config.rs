@@ -12,11 +12,11 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigSerDe {
-    pub dest : String,
-    pub dirs : HashSet<String>,
-    pub once : bool,
-    pub sleep : usize,
-    pub codes : HashMap<String, String>,
+    pub dest :Option<String>,
+    pub dirs :Option<HashSet<String>>,
+    pub once :Option<bool>,
+    pub sleep :Option<usize>,
+    pub codes :Option<HashMap<String, String>>,
 }
 
 macro_rules! home_dir {
@@ -33,7 +33,7 @@ macro_rules! which_declared {
             "once" => 2,
             "sleep" => 3,
             "codes" => 4,
-            "verbose" => 5,
+            "config" => 5,
             _ => 6,
         }
     };
@@ -131,16 +131,20 @@ pub fn get_verbose() -> Option<log::Level> {
     return verbose.log_level();
 }
 
-fn get_args() -> (Config, String, [bool ; 5]) {
+fn get_args() -> (Config, String, [bool ; 6]) {
     // Processing Options
     let args = Cli::from_args();
-    let mut declared : [bool ; 5] = [false, false, false, false, false];
+    let mut declared : [bool ; 6] = [false, false, false, false, false, false];
 
-    let config = args.config.unwrap_or(
-        format!(
+    let config : String;
+    if !args.config.is_none() {
+        config = args.config.unwrap();
+        declared[which_declared!("config")] = true;
+    } else {
+        config = format!(
             "{}{}{}", config_dir().unwrap().to_str().unwrap(), path::MAIN_SEPARATOR, "fcs.yml"
-        )
-    );
+        );
+    }
 
     let dest : String;
     let mut dirs : Vec<String>;
@@ -233,8 +237,8 @@ use std::fs;
 
 macro_rules! replace_value {
     ($conf1:expr, $conf2:expr, $attr:expr, $declared:expr) => {
-        if !$declared[which_declared!($attr)] {
-            $conf1 = $conf2;
+        if !$declared[which_declared!($attr)] && !$conf2.is_none() {
+            $conf1 = $conf2.unwrap();
         }
     };
 }
@@ -246,9 +250,24 @@ fn exists(the_path : &String) -> bool {
 // Get config from CLI args and config file
 pub fn get_config_args() -> Config {
     log::trace!("Getting arguments from CLI");
-    let (mut config, config_file, declared) = get_args();
+    let (mut config, mut config_file, declared) = get_args();
 
-    log::trace!("Reading {} for config", config_file);
+    let mut default_configs = vec![
+        format!(
+            "{}{}{}", config_dir().unwrap().to_str().unwrap(), path::MAIN_SEPARATOR, "fcs.yml"
+        ),
+        format!(
+            "{}{}{}{}{}", config_dir().unwrap().to_str().unwrap(), path::MAIN_SEPARATOR, "fcs",
+            path::MAIN_SEPARATOR, "init.yml"
+        )
+    ];
+
+    while !exists(&config_file) && !declared[which_declared!("config")] && !default_configs.is_empty() {
+        config_file = default_configs.pop().unwrap();
+    }
+
+    log::trace!("Reading \"{}\" for config", config_file);
+
     match fs::read_to_string(&config_file) {
         Ok(reading_file) => {
             match serde_yaml::from_str::<ConfigSerDe>(&reading_file) {

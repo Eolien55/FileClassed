@@ -1,12 +1,14 @@
 use std::collections::{HashMap};
 use std::path;
-use scan_dir::ScanDir;
 use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
 use std::thread::sleep;
 use std::time;
-use chrono::NaiveDateTime;
-use locale::Time;
 use std::fs;
+use std::error::Error;
+
+use scan_dir::ScanDir;
+use chrono::{offset::TimeZone, Local, NaiveDateTime};
+use locale::Time;
 use crate::config;
 
 fn get_new_name(
@@ -16,13 +18,13 @@ fn get_new_name(
     timestamp : time::SystemTime
 ) -> 
 // New path and directory
-(path::PathBuf, path::PathBuf) {
-    let timestamp = timestamp.duration_since(time::UNIX_EPOCH)
-                             .unwrap()
+Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
+    let timestamp = timestamp.duration_since(time::UNIX_EPOCH)?
                              .as_secs();
 
-    let datetime = NaiveDateTime::from_timestamp(timestamp as i64, 0)
-                                 .format("%Y %m").to_string();
+    let datetime = Local.from_utc_datetime(
+        &NaiveDateTime::from_timestamp(timestamp as i64, 0)
+    ).format("%Y %m").to_string();
 
     let year : String = datetime.chars()
                                 .skip(0)
@@ -34,7 +36,7 @@ fn get_new_name(
                                 .parse::<usize>()
                                 .unwrap() - 1;
 
-    let mut month = Time::load_user_locale().unwrap().long_month_name(month);
+    let mut month = Time::load_user_locale()?.long_month_name(month);
 
     if let Some(r) = month.get_mut(0..1) {
         r.make_ascii_uppercase();
@@ -76,7 +78,7 @@ fn get_new_name(
     let dir = ending_path.clone();
     ending_path.push(splitted.1);
 
-    (ending_path, dir)
+    return Ok((ending_path, dir));
 }
 
 fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>) {
@@ -86,12 +88,42 @@ fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>) {
 
     let timestamp = fs::metadata(&name).unwrap().created().unwrap();
 
-    let result = get_new_name(&name, dest, codes, timestamp);
-    
-    fs::create_dir_all(&result.1).unwrap();
-    fs::rename(&name, &result.0).unwrap();
+    match get_new_name(&name, dest, codes, timestamp) {
+        Ok(result) => {
+            fs::create_dir_all(&result.1).unwrap();
+            fs::rename(&name, &result.0).unwrap();
 
-    log::info!("Move path from {:?} to {:?}", name, result.0)
+            log::info!("Moved path from {:?} to {:?}", name, result.0)
+        },
+        
+        Err(e) => log::error!("Error happened with file {:?} : {}", name, e.to_string())
+    }
+}
+
+fn make_tables(codes : &HashMap<String, String>, dest : &String) {
+    if path::Path::new(&format!(
+        "{}{}Tables", dest, path::MAIN_SEPARATOR
+    )).exists() {
+        fs::remove_dir_all(format!(
+            "{}{}Tables", 
+            dest, path::MAIN_SEPARATOR
+        )).unwrap();
+    }
+
+    for (key, value) in codes {
+        log::trace!(
+            "Creating dir \"{}{}Tables{}{} = {}\"",
+            dest, path::MAIN_SEPARATOR, path::MAIN_SEPARATOR,
+            key, value
+        );
+        fs::create_dir_all(
+            format!(
+                "{}{}Tables{}{} = {}", 
+                dest, path::MAIN_SEPARATOR, path::MAIN_SEPARATOR,
+                key, value
+            )
+        ).unwrap();
+    }
 }
 
 pub fn run(my_config : config::Config) {
@@ -104,6 +136,9 @@ pub fn run(my_config : config::Config) {
         s.store(true, Ordering::SeqCst)
     }).unwrap();
     
+    log::trace!("Creating tables");
+    make_tables(&my_config.codes, &my_config.dest);
+
     log::trace!("Starting my job");
     'outer : while !should_end.load(Ordering::SeqCst) {
         for dir in &my_config.dirs {
@@ -124,6 +159,7 @@ pub fn run(my_config : config::Config) {
                 if should_end.load(Ordering::SeqCst) {
                     break 'outer;
                 }
+
                 handle(
                     entry.path(), &my_config.dest, &my_config.codes
                 );

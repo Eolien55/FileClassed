@@ -1,6 +1,6 @@
 [package]
 name = "file_classed"
-version = "1.0.0"
+version = "1.0.3"
 edition = "2018"
 description = "Efficient yet customizable file organizer"
 license = "GPL-3.0-or-later"
@@ -23,9 +23,9 @@ locale = "0.2"
 chrono = "0.4"
 
 log = "0.4"
-simple_logger = {version = "1.13", default_features=false, features=["stderr", "colors"]}
+simple_logger = {version = "1.13", default_features = false, features = ["colors"]}
 
-structopt = { version = "0.3" }
+structopt = "0.3"
 clap-verbosity-flag = "0.3"
 
 [[bin]]

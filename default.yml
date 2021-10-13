@@ -4,7 +4,7 @@ dirs:
   - $HOME/Documents/Scolaire
 
 
-once: false
+#once: false
 sleep: 1000
 codes:
   chin: Chinois
