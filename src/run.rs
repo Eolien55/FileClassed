@@ -1,6 +1,6 @@
 use std::collections::{HashMap};
 use std::path;
-use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
+use std::sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex};
 use std::thread::sleep;
 use std::time;
 use std::fs;
@@ -9,7 +9,8 @@ use std::error::Error;
 use scan_dir::ScanDir;
 use chrono::{offset::TimeZone, Local, NaiveDateTime};
 use locale::Time;
-use crate::config;
+use crate::config::{Config, DeclaredType};
+
 
 fn get_new_name(
     name: &path::PathBuf,
@@ -126,14 +127,30 @@ fn make_tables(codes : &HashMap<String, String>, dest : &String) {
     }
 }
 
-pub fn run(my_config : config::Config) {
+// Argument config is made of the following components
+// - Current configuration
+// - If configuration changed
+// - Which parts of config were declared using the CLI
+fn on_file_change(config : Arc<(Config, Arc<AtomicBool>, DeclaredType)>, config_file : String) {}
+
+pub fn run(mut my_config : Config, declared : DeclaredType) {
+    // Note : the <variable>_s is to read : "shared <variable>"
     let should_end = Arc::new(AtomicBool::new(false));
-    let s = should_end.clone();
+    let should_end_s = should_end.clone();
+
+    let config_changed = Arc::new(AtomicBool::new(false));
+    let config_s = Arc::new(
+        (
+            Mutex::new(&my_config),
+            config_changed.clone(),
+            Arc::new(declared)
+        )
+    );
     
     log::trace!("Setting up CTRL+C handler");
     ctrlc::set_handler(move || {
         println!("Received CTRL+C, ending.");
-        s.store(true, Ordering::SeqCst)
+        should_end_s.store(true, Ordering::SeqCst)
     }).unwrap();
     
     log::trace!("Creating tables");
@@ -142,6 +159,9 @@ pub fn run(my_config : config::Config) {
     log::trace!("Starting my job");
     'outer : while !should_end.load(Ordering::SeqCst) {
         for dir in &my_config.dirs {
+            if config_changed.load(Ordering::SeqCst) {
+            }
+
             let files : Vec<fs::DirEntry> = ScanDir::files().walk(dir, |iter| {
                 iter.filter(|&(_, ref name)| {
                     name.matches('.').count() > 1 && 

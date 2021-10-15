@@ -10,7 +10,7 @@ fn main() {
     human_panic::setup_panic!();
 
     log::trace!("Setting up the configuration");
-    let my_config = config::get_config_args();
+    let (my_config, declared) = config::get_config_args();
 
     log::trace!("Cleaning a bit configuration");
     let (my_config, fatal) = config::clean(my_config);
@@ -20,7 +20,7 @@ fn main() {
     }
 
     log::trace!("Ready to do the dirty job ! Configuration is ready");
-    run::run(my_config);
+    run::run(my_config, declared);
 
     log::info!("Goodbye");
     exit(exitcode::OK);

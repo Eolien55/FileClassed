@@ -10,6 +10,8 @@ pub struct Config {
     pub codes : HashMap<String, String>,
 }
 
+pub type DeclaredType = [bool ; 6];
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigSerDe {
     pub dest :Option<String>,
@@ -131,10 +133,10 @@ pub fn get_verbose() -> Option<log::Level> {
     return verbose.log_level();
 }
 
-fn get_args() -> (Config, String, [bool ; 6]) {
+fn get_args() -> (Config, String, DeclaredType) {
     // Processing Options
     let args = Cli::from_args();
-    let mut declared : [bool ; 6] = [false, false, false, false, false, false];
+    let mut declared : DeclaredType = [false, false, false, false, false, false];
 
     let config : String;
     if !args.config.is_none() {
@@ -248,7 +250,7 @@ fn exists(the_path : &String) -> bool {
 }
 
 // Get config from CLI args and config file
-pub fn get_config_args() -> Config {
+pub fn get_config_args() -> (Config, DeclaredType) {
     log::trace!("Getting arguments from CLI");
     let (mut config, mut config_file, declared) = get_args();
 
@@ -277,17 +279,17 @@ pub fn get_config_args() -> Config {
                     replace_value!(config.once, from_file.once, "once", declared);
                     replace_value!(config.sleep, from_file.sleep, "sleep", declared);
                     replace_value!(config.codes, from_file.codes, "codes", declared);
-                    config
+                    (config, declared)
                 },
                 Err(e) => {
                     log::error!("Error happenned while parsing config file \"{}\". Falling back to defaults", e.to_string());
-                    config
+                    (config, declared)
                 },
             }
         },
         Err(_) => {
             log::error!("Config file \"{}\" doesn't exist or isn't valid UTF-8. Falling back to defaults", config_file);
-            config
+            (config, declared)
         }
     }
 }
