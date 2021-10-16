@@ -249,12 +249,8 @@ fn exists(the_path : &String) -> bool {
     return path::Path::new(the_path.as_str()).exists();
 }
 
-// Get config from CLI args and config file
-pub fn get_config_args() -> (Config, DeclaredType) {
-    log::trace!("Getting arguments from CLI");
-    let (mut config, mut config_file, declared) = get_args();
-
-    let mut default_configs = vec![
+pub fn get_config(config : &mut Config, config_file : &mut String, declared : &DeclaredType) {
+    let mut default_config_files = vec![
         format!(
             "{}{}{}", config_dir().unwrap().to_str().unwrap(), path::MAIN_SEPARATOR, "fcs.yml"
         ),
@@ -264,8 +260,8 @@ pub fn get_config_args() -> (Config, DeclaredType) {
         )
     ];
 
-    while !exists(&config_file) && !declared[which_declared!("config")] && !default_configs.is_empty() {
-        config_file = default_configs.pop().unwrap();
+    while !exists(&config_file) && !declared[which_declared!("config")] && !default_config_files.is_empty() {
+        *config_file = default_config_files.pop().unwrap();
     }
 
     log::trace!("Reading \"{}\" for config", config_file);
@@ -279,26 +275,33 @@ pub fn get_config_args() -> (Config, DeclaredType) {
                     replace_value!(config.once, from_file.once, "once", declared);
                     replace_value!(config.sleep, from_file.sleep, "sleep", declared);
                     replace_value!(config.codes, from_file.codes, "codes", declared);
-                    (config, declared)
                 },
                 Err(e) => {
                     log::error!("Error happenned while parsing config file \"{}\". Falling back to defaults", e.to_string());
-                    (config, declared)
                 },
             }
         },
         Err(_) => {
             log::error!("Config file \"{}\" doesn't exist or isn't valid UTF-8. Falling back to defaults", config_file);
-            (config, declared)
         }
     }
+}
+
+// Get config from CLI args and config file
+pub fn get_config_args() -> (Config, String, DeclaredType) {
+    log::trace!("Getting arguments from CLI");
+    let (mut config, mut config_file, declared) = get_args();
+
+    get_config(&mut config, &mut config_file, &declared);
+
+    (config, config_file, declared)
 }
 
 // Here, we return our cleaned config
 // ie, without non-existing directories,
 // The bool value indicates if the config is so messed
 // up that it is unusable, and if the program should exit
-pub fn clean(mut config : Config) -> (Config, bool) {
+pub fn clean(config : &mut Config) -> bool {
     let mut fatal = false;
 
     config.dest = String::from(shellexpand::env(&config.dest).unwrap());
@@ -328,5 +331,5 @@ pub fn clean(mut config : Config) -> (Config, bool) {
         fatal = true;
     }
     
-    return (config, fatal);
+    return fatal;
 }
