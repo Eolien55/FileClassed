@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::conf::lib as conf;
 use crate::conf::{cli, file};
@@ -47,6 +47,46 @@ pub fn clean(config: &mut conf::Config) -> bool {
         log::error!("Destination \"{}\" doesn't exist ! Exiting", config.dest);
         fatal = true;
     }
+
+    let valid_codes: HashMap<String, String> = config
+        .codes
+        .iter()
+        .filter(|entry| {
+            !vec![".", ".."].contains(&entry.1.as_str())
+                && entry.0.matches('.').count() < 1
+                && entry.0.len() > 0
+                && entry.0.matches('/').count() < 1
+                && entry.1.len() > 0
+                && entry.1.matches('/').count() < 1
+        })
+        .map(|entry| (entry.0.to_owned(), entry.1.to_owned()))
+        .collect();
+
+    let valid_codes_keys: HashSet<String> =
+        valid_codes.iter().map(|entry| entry.0.to_owned()).collect();
+    let codes_keys: HashSet<String> = config
+        .codes
+        .iter()
+        .map(|entry| entry.0.to_owned())
+        .collect();
+
+    let invalid_codes_keys = codes_keys.difference(&valid_codes_keys);
+
+    for key in invalid_codes_keys {
+        log::warn!(
+            "Shortcut \"{}={}\" isn't valid ! Not using it",
+            key,
+            config.codes[key]
+        );
+    }
+    config.codes = valid_codes;
+
+    if config.codes.is_empty() {
+        log::error!("No shortcut set up, or none of them are valid ! Exiting");
+        fatal = true;
+    }
+
+    log::debug!("Here's the config : {:?}", config);
 
     return fatal;
 }

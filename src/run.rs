@@ -5,6 +5,7 @@ use scan_dir::ScanDir;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
+use std::io::prelude::*;
 use std::path;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -105,29 +106,22 @@ fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>) {
 }
 
 fn make_tables(codes: &HashMap<String, String>, dest: &String) {
-    if path::Path::new(&format!("{}{}Tables", dest, path::MAIN_SEPARATOR)).exists() {
-        fs::remove_dir_all(format!("{}{}Tables", dest, path::MAIN_SEPARATOR)).unwrap();
+    if path::Path::new(&format!("{}{}shortcuts", dest, path::MAIN_SEPARATOR)).exists() {
+        fs::remove_file(format!("{}{}shortcuts", dest, path::MAIN_SEPARATOR)).unwrap();
     }
 
+    let mut shortcuts_file =
+        fs::File::create(format!("{}{}shortcuts", dest, path::MAIN_SEPARATOR)).unwrap();
+
+    let mut shortcuts = String::new();
     for (key, value) in codes {
-        log::trace!(
-            "Creating dir \"{}{}Tables{}{} = {}\"",
-            dest,
-            path::MAIN_SEPARATOR,
-            path::MAIN_SEPARATOR,
-            key,
-            value
-        );
-        fs::create_dir_all(format!(
-            "{}{}Tables{}{} = {}",
-            dest,
-            path::MAIN_SEPARATOR,
-            path::MAIN_SEPARATOR,
-            key,
-            value
-        ))
-        .unwrap();
+        shortcuts += &format!("\t{} = {}\n", key, value);
     }
+
+    shortcuts_file
+        .write(format!("{}", shortcuts).as_bytes())
+        .unwrap();
+    log::debug!("Codes are : \n{}", shortcuts)
 }
 
 pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: String) {
