@@ -13,18 +13,32 @@ macro_rules! replace_value {
     };
 }
 
-pub fn get_config(config : &mut lib::Config, config_file : &mut String, declared : &lib::DeclaredType) {
+pub fn get_config(
+    config: &mut lib::Config,
+    config_file: &mut String,
+    declared: &lib::DeclaredType,
+) {
     let mut default_config_files = vec![
         format!(
-            "{}{}{}", config_dir().unwrap().to_str().unwrap(), path::MAIN_SEPARATOR, "fcs.yml"
+            "{}{}{}",
+            config_dir().unwrap().to_str().unwrap(),
+            path::MAIN_SEPARATOR,
+            "fcs.yml"
         ),
         format!(
-            "{}{}{}{}{}", config_dir().unwrap().to_str().unwrap(), path::MAIN_SEPARATOR, "fcs",
-            path::MAIN_SEPARATOR, "init.yml"
-        )
+            "{}{}{}{}{}",
+            config_dir().unwrap().to_str().unwrap(),
+            path::MAIN_SEPARATOR,
+            "fcs",
+            path::MAIN_SEPARATOR,
+            "init.yml"
+        ),
     ];
 
-    while !lib::exists(&config_file) && !declared[lib::which_declared!("config")] && !default_config_files.is_empty() {
+    while !lib::exists(&config_file)
+        && !declared[lib::which_declared!("config")]
+        && !default_config_files.is_empty()
+    {
         *config_file = default_config_files.pop().unwrap();
     }
 
@@ -39,14 +53,17 @@ pub fn get_config(config : &mut lib::Config, config_file : &mut String, declared
                     replace_value!(config.once, from_file.once, "once", declared);
                     replace_value!(config.sleep, from_file.sleep, "sleep", declared);
                     replace_value!(config.codes, from_file.codes, "codes", declared);
-                },
+                }
                 Err(e) => {
                     log::error!("Error happenned while parsing config file \"{}\". Falling back to defaults", e.to_string());
-                },
+                }
             }
-        },
+        }
         Err(_) => {
-            log::error!("Config file \"{}\" doesn't exist or isn't valid UTF-8. Falling back to defaults", config_file);
+            log::error!(
+                "Config file \"{}\" doesn't exist or isn't valid UTF-8. Falling back to defaults",
+                config_file
+            );
         }
     }
 }

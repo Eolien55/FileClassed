@@ -1,44 +1,47 @@
-use scan_dir::ScanDir;
 use chrono::{offset::TimeZone, Local, NaiveDateTime};
 use locale::Time;
+use scan_dir::ScanDir;
 
-use std::collections::{HashMap};
+use std::collections::HashMap;
+use std::error::Error;
+use std::fs;
 use std::path;
-use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::thread::sleep;
 use std::time;
-use std::fs;
-use std::error::Error;
 
-use crate::main_config::{clean};
 use crate::conf::file::get_config;
 use crate::conf::lib::{Config, DeclaredType};
-
+use crate::main_config::clean;
 
 fn get_new_name(
     name: &path::PathBuf,
     dest: &String,
     codes: &HashMap<String, String>,
-    timestamp : time::SystemTime
-) -> 
-// New path and directory
-Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
-    let timestamp = timestamp.duration_since(time::UNIX_EPOCH)?
-                             .as_secs();
+    timestamp: time::SystemTime,
+) -> Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
+    let timestamp = timestamp.duration_since(time::UNIX_EPOCH)?.as_secs();
 
-    let datetime = Local.from_utc_datetime(
-        &NaiveDateTime::from_timestamp(timestamp as i64, 0)
-    ).format("%Y %m").to_string();
+    let datetime = Local
+        .from_utc_datetime(&NaiveDateTime::from_timestamp(timestamp as i64, 0))
+        .format("%Y %m")
+        .to_string();
 
-    let year : String = datetime.chars()
-                                .skip(0)
-                                .take(datetime.find(' ').unwrap())
-                                .collect();
-    let month : usize = datetime.chars()
-                                .skip(datetime.find(' ').unwrap() + 1)
-                                .collect::<String>()
-                                .parse::<usize>()
-                                .unwrap() - 1;
+    let year: String = datetime
+        .chars()
+        .skip(0)
+        .take(datetime.find(' ').unwrap())
+        .collect();
+    let month: usize = datetime
+        .chars()
+        .skip(datetime.find(' ').unwrap() + 1)
+        .collect::<String>()
+        .parse::<usize>()
+        .unwrap()
+        - 1;
 
     let mut month = Time::load_user_locale()?.long_month_name(month);
 
@@ -46,31 +49,28 @@ Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
         r.make_ascii_uppercase();
     }
 
-    let mut ending_path : path::PathBuf = path::PathBuf::new();
+    let mut ending_path: path::PathBuf = path::PathBuf::new();
     ending_path.push(dest);
     ending_path.push(year);
 
-    let string_name : &str = &name.to_str()
-                                  .unwrap()
-                                  .chars()
-                                  .skip(
-                                      name.to_str()
-                                          .unwrap()
-                                          .rfind(path::MAIN_SEPARATOR)
-                                          .unwrap() + 1
-                                    )
-                                  .collect::<String>();
-    
+    let string_name: &str = &name
+        .to_str()
+        .unwrap()
+        .chars()
+        .skip(name.to_str().unwrap().rfind(path::MAIN_SEPARATOR).unwrap() + 1)
+        .collect::<String>();
+
     let mut next = string_name;
-    let mut splitted : (&str, &str) = ("", "");
+    let mut splitted: (&str, &str) = ("", "");
     while next.matches('.').count() > 1 {
         splitted = next.split_at(next.find('.').unwrap() + 1);
         let current = splitted.0;
-        let current : &str = &current.chars()
-                             .take(current.chars().count() - 1)
-                             .collect::<String>();
+        let current: &str = &current
+            .chars()
+            .take(current.chars().count() - 1)
+            .collect::<String>();
         next = splitted.1;
-        
+
         if codes.contains_key(current) {
             ending_path.push(&codes[current]);
         } else {
@@ -98,39 +98,39 @@ fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>) {
             fs::rename(&name, &result.0).unwrap();
 
             log::info!("Moved path from {:?} to {:?}", name, result.0)
-        },
-        
-        Err(e) => log::error!("Error happened with file {:?} : {}", name, e.to_string())
+        }
+
+        Err(e) => log::error!("Error happened with file {:?} : {}", name, e.to_string()),
     }
 }
 
-fn make_tables(codes : &HashMap<String, String>, dest : &String) {
-    if path::Path::new(&format!(
-        "{}{}Tables", dest, path::MAIN_SEPARATOR
-    )).exists() {
-        fs::remove_dir_all(format!(
-            "{}{}Tables", 
-            dest, path::MAIN_SEPARATOR
-        )).unwrap();
+fn make_tables(codes: &HashMap<String, String>, dest: &String) {
+    if path::Path::new(&format!("{}{}Tables", dest, path::MAIN_SEPARATOR)).exists() {
+        fs::remove_dir_all(format!("{}{}Tables", dest, path::MAIN_SEPARATOR)).unwrap();
     }
 
     for (key, value) in codes {
         log::trace!(
             "Creating dir \"{}{}Tables{}{} = {}\"",
-            dest, path::MAIN_SEPARATOR, path::MAIN_SEPARATOR,
-            key, value
+            dest,
+            path::MAIN_SEPARATOR,
+            path::MAIN_SEPARATOR,
+            key,
+            value
         );
-        fs::create_dir_all(
-            format!(
-                "{}{}Tables{}{} = {}", 
-                dest, path::MAIN_SEPARATOR, path::MAIN_SEPARATOR,
-                key, value
-            )
-        ).unwrap();
+        fs::create_dir_all(format!(
+            "{}{}Tables{}{} = {}",
+            dest,
+            path::MAIN_SEPARATOR,
+            path::MAIN_SEPARATOR,
+            key,
+            value
+        ))
+        .unwrap();
     }
 }
 
-pub fn run(mut my_config : Config, declared : DeclaredType, mut config_file : String) {
+pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: String) {
     // Note : the <variable>_s is to read : "shared <variable>"
     let should_end = Arc::new(AtomicBool::new(false));
     let should_end_s = should_end.clone();
@@ -138,24 +138,37 @@ pub fn run(mut my_config : Config, declared : DeclaredType, mut config_file : St
 
     let config_changed = Arc::new(AtomicBool::new(false));
     let config_changed_s = config_changed.clone();
-    
+
     let config_file_s = config_file.clone();
-    let mut background_thread : Option<std::thread::JoinHandle<()>> = None;
+    let mut background_thread: Option<std::thread::JoinHandle<()>> = None;
 
     if path::Path::new(&config_file).exists() && !my_config.once {
         log::trace!("Setting up config watcher");
-        
+
         background_thread = Some(std::thread::spawn(move || {
-            let mut opened_config_file : std::io::Result<fs::File>;
+            let mut opened_config_file: std::io::Result<fs::File>;
             opened_config_file = fs::File::open(&config_file_s);
-            let mut old_last_change = opened_config_file.unwrap().metadata().unwrap().modified().unwrap();
+            let mut old_last_change = opened_config_file
+                .unwrap()
+                .metadata()
+                .unwrap()
+                .modified()
+                .unwrap();
             loop {
                 opened_config_file = fs::File::open(&config_file_s);
-                
+
                 if opened_config_file.is_err() {
-                    log::warn!("Config file {} doesn't exist anymore ! Can't use it", config_file_s);
+                    log::warn!(
+                        "Config file {} doesn't exist anymore ! Can't use it",
+                        config_file_s
+                    );
                 } else {
-                    let new_last_change = opened_config_file.unwrap().metadata().unwrap().modified().unwrap();
+                    let new_last_change = opened_config_file
+                        .unwrap()
+                        .metadata()
+                        .unwrap()
+                        .modified()
+                        .unwrap();
                     if old_last_change < new_last_change {
                         config_changed_s.store(true, Ordering::SeqCst);
                         old_last_change = new_last_change;
@@ -170,40 +183,39 @@ pub fn run(mut my_config : Config, declared : DeclaredType, mut config_file : St
             }
         }));
     }
-    
+
     log::trace!("Setting up CTRL+C handler");
     ctrlc::set_handler(move || {
         println!("Received CTRL+C, ending.");
         should_end_s.store(true, Ordering::SeqCst)
-    }).unwrap();
-    
+    })
+    .unwrap();
+
     log::trace!("Creating tables");
     make_tables(&my_config.codes, &my_config.dest);
 
     log::trace!("Starting my job");
-    'outer : while !should_end.load(Ordering::SeqCst) {
+    'outer: while !should_end.load(Ordering::SeqCst) {
         for dir in &my_config.dirs {
-            let files : Vec<fs::DirEntry> = ScanDir::files().walk(dir, |iter| {
-                iter.filter(|&(_, ref name)| {
-                    name.matches('.').count() > 1 && 
-                            my_config.codes.contains_key::<String>(
-                                &name.chars()
-                                     .take(
-                                         name.find('.').unwrap()
-                                        )
-                                     .collect())
-                }).map(|(entry, _)| entry)
-                  .collect()
-            }).unwrap();
-            
+            let files: Vec<fs::DirEntry> = ScanDir::files()
+                .walk(dir, |iter| {
+                    iter.filter(|&(_, ref name)| {
+                        name.matches('.').count() > 1
+                            && my_config.codes.contains_key::<String>(
+                                &name.chars().take(name.find('.').unwrap()).collect(),
+                            )
+                    })
+                    .map(|(entry, _)| entry)
+                    .collect()
+                })
+                .unwrap();
+
             for entry in files {
                 if should_end.load(Ordering::SeqCst) {
                     break 'outer;
                 }
 
-                handle(
-                    entry.path(), &my_config.dest, &my_config.codes
-                );
+                handle(entry.path(), &my_config.dest, &my_config.codes);
             }
 
             if should_end.load(Ordering::SeqCst) {

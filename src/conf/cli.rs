@@ -1,9 +1,9 @@
 use dirs::config_dir;
 use structopt::StructOpt;
 
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::path;
-use std::collections::{HashSet, HashMap};
 
 use super::lib;
 
@@ -30,24 +30,24 @@ where
 
 struct Cli {
     /// Sets the configurationg file
-    #[structopt(short="-C", long, value_name = "file")]
-    config : Option<String>,
+    #[structopt(short = "-C", long, value_name = "file")]
+    config: Option<String>,
 
     /// Overrides the watching directories
     #[structopt(short, long, value_name = "directory")]
-    dir : Option<Vec<String>>,
+    dir: Option<Vec<String>>,
 
     /// Overrides destination directory
-    #[structopt(short="-D", long, value_name = "directory")]
-    dest : Option<String>,
+    #[structopt(short = "-D", long, value_name = "directory")]
+    dest: Option<String>,
 
     /// Makes the program loop only once
     #[structopt(short, long)]
-    once : bool,
+    once: bool,
 
     /// Sets the how much milliseconds the program should sleep between each loop
     #[structopt(short, long, value_name = "milliseconds")]
-    sleep : Option<usize>,
+    sleep: Option<usize>,
 
     /// Shortcuts, ie meanings
     #[structopt(
@@ -56,11 +56,11 @@ struct Cli {
         value_name = "shortcut=meaning", 
         parse(try_from_str = parse_key_val)
     )]
-    codes : Option<Vec<(String, String)>>,
+    codes: Option<Vec<(String, String)>>,
 
     /// Makes the program verbose
     #[structopt(flatten)]
-    verbose : clap_verbosity_flag::Verbosity,
+    verbose: clap_verbosity_flag::Verbosity,
 }
 
 pub fn get_verbose() -> Option<log::Level> {
@@ -73,32 +73,32 @@ pub fn get_verbose() -> Option<log::Level> {
 pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     // Processing Options
     let args = Cli::from_args();
-    let mut declared : lib::DeclaredType = [false, false, false, false, false, false];
+    let mut declared: lib::DeclaredType = [false, false, false, false, false, false];
 
-    let config : String;
+    let config: String;
     if !args.config.is_none() {
         config = args.config.unwrap();
         declared[lib::which_declared!("config")] = true;
     } else {
         config = format!(
-            "{}{}{}", config_dir().unwrap().to_str().unwrap(), path::MAIN_SEPARATOR, "fcs.yml"
+            "{}{}{}",
+            config_dir().unwrap().to_str().unwrap(),
+            path::MAIN_SEPARATOR,
+            "fcs.yml"
         );
     }
 
-    let dest : String;
-    let mut dirs : Vec<String>;
-    let once : bool;
-    let sleep : usize;
-    let codes : HashMap<String, String>;
+    let dest: String;
+    let mut dirs: Vec<String>;
+    let once: bool;
+    let sleep: usize;
+    let codes: HashMap<String, String>;
 
     if !args.dir.is_none() {
         dirs = args.dir.unwrap();
         declared[lib::which_declared!("dirs")] = true;
     } else {
-        dirs = vec![
-            lib::home_dir!("Scolaire"),
-            lib::home_dir!("usb")
-        ]
+        dirs = vec![lib::home_dir!("Scolaire"), lib::home_dir!("usb")]
     }
 
     if !args.dest.is_none() {
@@ -119,9 +119,12 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     }
 
     if !args.codes.is_none() {
-        codes = args.codes.unwrap().iter()
-                                   .map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned()))
-                                   .collect();
+        codes = args
+            .codes
+            .unwrap()
+            .iter()
+            .map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned()))
+            .collect();
         declared[lib::which_declared!("codes")] = true;
     } else {
         codes = [
@@ -137,13 +140,25 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
             ("pc", "Physique-Chimie"),
             ("ses", "Sciences Économiques et Sociales"),
             ("svt", "SVT"),
-            ("vdc", "Vie de Classe")].iter()
-                                     .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
-                                     .collect();        
+            ("vdc", "Vie de Classe"),
+        ]
+        .iter()
+        .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
+        .collect();
     }
 
     dirs.shrink_to_fit();
-    let dirs : HashSet<String> = dirs.into_iter().collect();
+    let dirs: HashSet<String> = dirs.into_iter().collect();
 
-    return (lib::Config {dest, dirs, once, sleep, codes}, config, declared);
+    return (
+        lib::Config {
+            dest,
+            dirs,
+            once,
+            sleep,
+            codes,
+        },
+        config,
+        declared,
+    );
 }
