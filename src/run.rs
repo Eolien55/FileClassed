@@ -9,7 +9,9 @@ use std::error::Error;
 use scan_dir::ScanDir;
 use chrono::{offset::TimeZone, Local, NaiveDateTime};
 use locale::Time;
-use crate::config::{Config, DeclaredType, get_config, clean};
+use crate::main_config::{clean};
+use crate::conf::file::get_config;
+use crate::conf::lib::{Config, DeclaredType};
 
 
 fn get_new_name(
