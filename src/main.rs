@@ -1,6 +1,8 @@
-use std::process::exit;
-use fcs::{main_config, conf, run};
 use simple_logger::init_with_level;
+
+use std::process::exit;
+
+use fcs::{main_config, conf, run};
 
 fn main() {
     let verbose = conf::cli::get_verbose();

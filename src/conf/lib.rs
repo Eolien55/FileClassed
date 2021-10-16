@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+
 use std::collections::{HashMap, HashSet};
 use std::path;
 
@@ -30,7 +31,7 @@ pub fn exists(the_path : &String) -> bool {
 
 macro_rules! home_dir {
     ($dir:expr) => (
-        format!("{}{}{}", conf::home_directory().unwrap().to_str().unwrap(), path::MAIN_SEPARATOR, $dir)
+        format!("{}{}{}", lib::home_directory().unwrap().to_str().unwrap(), path::MAIN_SEPARATOR, $dir)
     );
 }
 

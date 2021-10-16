@@ -1,3 +1,7 @@
+use scan_dir::ScanDir;
+use chrono::{offset::TimeZone, Local, NaiveDateTime};
+use locale::Time;
+
 use std::collections::{HashMap};
 use std::path;
 use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
@@ -6,9 +10,6 @@ use std::time;
 use std::fs;
 use std::error::Error;
 
-use scan_dir::ScanDir;
-use chrono::{offset::TimeZone, Local, NaiveDateTime};
-use locale::Time;
 use crate::main_config::{clean};
 use crate::conf::file::get_config;
 use crate::conf::lib::{Config, DeclaredType};

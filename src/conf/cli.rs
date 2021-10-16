@@ -1,10 +1,11 @@
 use dirs::config_dir;
 use structopt::StructOpt;
+
 use std::error::Error;
 use std::path;
 use std::collections::{HashSet, HashMap};
 
-use super::lib as conf;
+use super::lib;
 
 fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error>>
 where
@@ -69,15 +70,15 @@ pub fn get_verbose() -> Option<log::Level> {
     return verbose.log_level();
 }
 
-pub fn get_args() -> (conf::Config, String, conf::DeclaredType) {
+pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     // Processing Options
     let args = Cli::from_args();
-    let mut declared : conf::DeclaredType = [false, false, false, false, false, false];
+    let mut declared : lib::DeclaredType = [false, false, false, false, false, false];
 
     let config : String;
     if !args.config.is_none() {
         config = args.config.unwrap();
-        declared[conf::which_declared!("config")] = true;
+        declared[lib::which_declared!("config")] = true;
     } else {
         config = format!(
             "{}{}{}", config_dir().unwrap().to_str().unwrap(), path::MAIN_SEPARATOR, "fcs.yml"
@@ -92,27 +93,27 @@ pub fn get_args() -> (conf::Config, String, conf::DeclaredType) {
 
     if !args.dir.is_none() {
         dirs = args.dir.unwrap();
-        declared[conf::which_declared!("dirs")] = true;
+        declared[lib::which_declared!("dirs")] = true;
     } else {
         dirs = vec![
-            conf::home_dir!("Scolaire"),
-            conf::home_dir!("usb")
+            lib::home_dir!("Scolaire"),
+            lib::home_dir!("usb")
         ]
     }
 
     if !args.dest.is_none() {
         dest = args.dest.unwrap();
-        declared[conf::which_declared!("dest")] = true;
+        declared[lib::which_declared!("dest")] = true;
     } else {
-        dest = conf::home_dir!("Scolaire");
+        dest = lib::home_dir!("Scolaire");
     }
 
     once = args.once;
-    declared[conf::which_declared!("once")] = once;
+    declared[lib::which_declared!("once")] = once;
 
     if !args.sleep.is_none() {
         sleep = args.sleep.unwrap();
-        declared[conf::which_declared!("sleep")] = true;
+        declared[lib::which_declared!("sleep")] = true;
     } else {
         sleep = 1000;
     }
@@ -121,7 +122,7 @@ pub fn get_args() -> (conf::Config, String, conf::DeclaredType) {
         codes = args.codes.unwrap().iter()
                                    .map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned()))
                                    .collect();
-        declared[conf::which_declared!("codes")] = true;
+        declared[lib::which_declared!("codes")] = true;
     } else {
         codes = [
             ("chin", "Chinois"),
@@ -144,5 +145,5 @@ pub fn get_args() -> (conf::Config, String, conf::DeclaredType) {
     dirs.shrink_to_fit();
     let dirs : HashSet<String> = dirs.into_iter().collect();
 
-    return (conf::Config {dest, dirs, once, sleep, codes}, config, declared);
+    return (lib::Config {dest, dirs, once, sleep, codes}, config, declared);
 }
