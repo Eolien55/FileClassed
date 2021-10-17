@@ -4,17 +4,18 @@ Efficient, lightweight, configurable file organizer. This project is very simple
 
 ## How it works
 
-The way this program organizes files could be conflicting with some normal app behaviour. Note that it is chronolagically based ; it is thus only applicable to non-IT works.
+The way this program organizes files could be conflicting with some normal software behaviour. Note that this doesn't keep references between files ; LaTeX code would thus need to be a little changed. FileClassed should only be used for non-IT classification.
 
-This program takes care of the creation date of this file. The way it currently does it is specific to Linux ; however, it's quite a simple feature to adapt.
+This program takes care of the creation date of this file. Thanks to Rust `creation` function, it does
 
-A file that was created on September 2021 named `mt.Assignments.euler.pdf` would be move by the program to `2021/Mathematics/Assignments/September/euler.pdf`. mt means Mathematics.
+A file that was created on September 2021 named `mt.Assignments.euler.pdf` would be move by the program to `Mathematics/Assignments/euler.pdf`. mt means Mathematics, when time info is disabled. Otherwise, it would be `2021/Mathematics/Assignments/September/euler.pdf`.
 
-A file created on the same month but named `mt.hst.euler.pdf` would be moved to `2021/Mathematics/History/September/euler.pdf`. hst means History, as you guessed.
+A file named `mt.hst.euler.pdf` would be moved to `Mathematics/History/euler.pdf`. hst means History, as you guessed.
 
-Note that "meanings" can easily be configured. What I just said isn't the absolute truth since shortcuts are in the defaults written in french, including months.
+Note that "meanings" can easily and fully be configured. What I just said isn't the absolute truth since shortcuts are in the defaults written in french, including months.
 
 It is primarily intended to class scolar works, that's why it uses years and months.
+Note that months and years are optional, since v1.1.1.
 
 ## Installing
 

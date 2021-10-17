@@ -62,7 +62,13 @@ pub fn get_config(
                     replace_value!(config.once, from_file.once, "once", declared);
                     replace_value!(config.sleep, from_file.sleep, "sleep", declared);
                     replace_value!(config.codes, from_file.codes, "codes", declared);
-                    replace_value!(config.timeinfo, from_file.timeinfo, "timeinfo", declared, false);
+                    replace_value!(
+                        config.timeinfo,
+                        from_file.timeinfo,
+                        "timeinfo",
+                        declared,
+                        false
+                    );
                 }
                 Err(e) => {
                     log::error!("Error happenned while parsing config file \"{}\". Falling back to defaults", e.to_string());

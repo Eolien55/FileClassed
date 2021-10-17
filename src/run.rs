@@ -26,7 +26,7 @@ fn get_new_name(
     timeinfo: bool,
 ) -> Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
     let mut year: String = "".to_string();
-    let month_nb : usize;
+    let month_nb: usize;
     let mut month_str: String = "".to_string();
 
     if timeinfo {
@@ -122,6 +122,10 @@ fn make_tables(codes: &HashMap<String, String>, dest: &String) {
         fs::remove_file(format!("{}{}shortcuts", dest, path::MAIN_SEPARATOR)).unwrap();
     }
 
+    if path::Path::new(&format!("{}{}fcs-should_end", dest, path::MAIN_SEPARATOR)).exists() {
+        fs::remove_file(&format!("{}{}fcs-should_end", dest, path::MAIN_SEPARATOR)).unwrap();
+    }
+
     let mut shortcuts_file =
         fs::File::create(format!("{}{}shortcuts", dest, path::MAIN_SEPARATOR)).unwrap();
 
@@ -133,14 +137,16 @@ fn make_tables(codes: &HashMap<String, String>, dest: &String) {
     shortcuts_file
         .write(format!("{}", shortcuts).as_bytes())
         .unwrap();
-    log::debug!("Codes are : \n{}", shortcuts)
+    log::debug!("Codes are : \n{}", shortcuts);
 }
 
 pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: String) {
+    log::trace!("Creating tables");
+    make_tables(&my_config.codes, &my_config.dest);
+
     // Note : the <variable>_s is to read : "shared <variable>"
     let should_end = Arc::new(AtomicBool::new(false));
     let should_end_s = should_end.clone();
-    let should_end_s_s = should_end_s.clone();
 
     let config_changed = Arc::new(AtomicBool::new(false));
     let config_changed_s = config_changed.clone();
@@ -150,6 +156,9 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
     if path::Path::new(&config_file).exists() && !my_config.once {
         log::trace!("Setting up config watcher");
+
+        let should_end_s_s = should_end_s.clone();
+        let dest_s = my_config.dest.clone();
 
         background_thread = Some(std::thread::spawn(move || {
             let mut opened_config_file: std::io::Result<fs::File>;
@@ -185,6 +194,15 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                     break;
                 }
 
+                if path::Path::new(&format!("{}{}fcs-should_end", dest_s, path::MAIN_SEPARATOR))
+                    .exists()
+                {
+                    should_end_s_s.store(true, Ordering::SeqCst);
+                    fs::remove_file(&format!("{}{}fcs-should_end", dest_s, path::MAIN_SEPARATOR))
+                        .unwrap();
+                    break;
+                }
+
                 sleep(time::Duration::from_secs(2));
             }
         }));
@@ -196,9 +214,6 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         should_end_s.store(true, Ordering::SeqCst)
     })
     .unwrap();
-
-    log::trace!("Creating tables");
-    make_tables(&my_config.codes, &my_config.dest);
 
     log::trace!("Starting my job");
     'outer: while !should_end.load(Ordering::SeqCst) {
