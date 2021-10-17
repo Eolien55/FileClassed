@@ -11,6 +11,14 @@ macro_rules! replace_value {
             $conf1 = $conf2.unwrap();
         }
     };
+
+    ($conf1:expr, $conf2:expr, $attr:expr, $declared:expr, $default:expr) => {
+        if !$declared[lib::which_declared!($attr)] && !$conf2.is_none() {
+            $conf1 = $conf2.unwrap();
+        } else if !$declared[lib::which_declared!($attr)] {
+            $conf1 = $default;
+        }
+    };
 }
 
 pub fn get_config(
@@ -48,11 +56,13 @@ pub fn get_config(
         Ok(reading_file) => {
             match serde_yaml::from_str::<lib::ConfigSerDe>(&reading_file) {
                 Ok(from_file) => {
+                    log::debug!("Config from file : {:?}", from_file);
                     replace_value!(config.dirs, from_file.dirs, "dirs", declared);
                     replace_value!(config.dest, from_file.dest, "dest", declared);
                     replace_value!(config.once, from_file.once, "once", declared);
                     replace_value!(config.sleep, from_file.sleep, "sleep", declared);
                     replace_value!(config.codes, from_file.codes, "codes", declared);
+                    replace_value!(config.timeinfo, from_file.timeinfo, "timeinfo", declared, false);
                 }
                 Err(e) => {
                     log::error!("Error happenned while parsing config file \"{}\". Falling back to defaults", e.to_string());

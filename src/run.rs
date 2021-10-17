@@ -23,36 +23,45 @@ fn get_new_name(
     dest: &String,
     codes: &HashMap<String, String>,
     timestamp: time::SystemTime,
+    timeinfo: bool,
 ) -> Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
-    let timestamp = timestamp.duration_since(time::UNIX_EPOCH)?.as_secs();
+    let mut year: String = "".to_string();
+    let month_nb : usize;
+    let mut month_str: String = "".to_string();
 
-    let datetime = Local
-        .from_utc_datetime(&NaiveDateTime::from_timestamp(timestamp as i64, 0))
-        .format("%Y %m")
-        .to_string();
+    if timeinfo {
+        let timestamp = timestamp.duration_since(time::UNIX_EPOCH)?.as_secs();
 
-    let year: String = datetime
-        .chars()
-        .skip(0)
-        .take(datetime.find(' ').unwrap())
-        .collect();
-    let month: usize = datetime
-        .chars()
-        .skip(datetime.find(' ').unwrap() + 1)
-        .collect::<String>()
-        .parse::<usize>()
-        .unwrap()
-        - 1;
+        let datetime = Local
+            .from_utc_datetime(&NaiveDateTime::from_timestamp(timestamp as i64, 0))
+            .format("%Y %m")
+            .to_string();
 
-    let mut month = Time::load_user_locale()?.long_month_name(month);
+        year = datetime
+            .chars()
+            .skip(0)
+            .take(datetime.find(' ').unwrap())
+            .collect();
+        month_nb = datetime
+            .chars()
+            .skip(datetime.find(' ').unwrap() + 1)
+            .collect::<String>()
+            .parse::<usize>()
+            .unwrap()
+            - 1;
 
-    if let Some(r) = month.get_mut(0..1) {
-        r.make_ascii_uppercase();
+        month_str = Time::load_user_locale()?.long_month_name(month_nb);
+
+        if let Some(r) = month_str.get_mut(0..1) {
+            r.make_ascii_uppercase();
+        }
     }
 
     let mut ending_path: path::PathBuf = path::PathBuf::new();
     ending_path.push(dest);
-    ending_path.push(year);
+    if timeinfo {
+        ending_path.push(year);
+    }
 
     let string_name: &str = &name
         .to_str()
@@ -79,21 +88,24 @@ fn get_new_name(
         }
     }
 
-    ending_path.push(month);
+    if timeinfo {
+        ending_path.push(month_str);
+    }
+
     let dir = ending_path.clone();
     ending_path.push(splitted.1);
 
     return Ok((ending_path, dir));
 }
 
-fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>) {
+fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>, timeinfo: &bool) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
         ()
     }
 
     let timestamp = fs::metadata(&name).unwrap().created().unwrap();
 
-    match get_new_name(&name, dest, codes, timestamp) {
+    match get_new_name(&name, dest, codes, timestamp, *timeinfo) {
         Ok(result) => {
             fs::create_dir_all(&result.1).unwrap();
             fs::rename(&name, &result.0).unwrap();
@@ -209,7 +221,12 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                     break 'outer;
                 }
 
-                handle(entry.path(), &my_config.dest, &my_config.codes);
+                handle(
+                    entry.path(),
+                    &my_config.dest,
+                    &my_config.codes,
+                    &my_config.timeinfo,
+                );
             }
 
             if should_end.load(Ordering::SeqCst) {

@@ -58,6 +58,10 @@ struct Cli {
     )]
     codes: Option<Vec<(String, String)>>,
 
+    /// Activates time info, ie including months and years in the path
+    #[structopt(short, long)]
+    timeinfo: bool,
+
     /// Makes the program verbose
     #[structopt(flatten)]
     verbose: clap_verbosity_flag::Verbosity,
@@ -73,7 +77,7 @@ pub fn get_verbose() -> Option<log::Level> {
 pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     // Processing Options
     let args = Cli::from_args();
-    let mut declared: lib::DeclaredType = [false, false, false, false, false, false];
+    let mut declared: lib::DeclaredType = [false, false, false, false, false, false, false];
 
     let config: String;
     if !args.config.is_none() {
@@ -93,6 +97,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     let once: bool;
     let sleep: usize;
     let codes: HashMap<String, String>;
+    let timeinfo: bool;
 
     if !args.dir.is_none() {
         dirs = args.dir.unwrap();
@@ -147,6 +152,9 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
         .collect();
     }
 
+    timeinfo = args.timeinfo;
+    declared[lib::which_declared!("timeinfo")] = timeinfo;
+
     dirs.shrink_to_fit();
     let dirs: HashSet<String> = dirs.into_iter().collect();
 
@@ -157,6 +165,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
             once,
             sleep,
             codes,
+            timeinfo,
         },
         config,
         declared,
