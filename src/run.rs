@@ -46,8 +46,7 @@ fn get_new_name(
             .chars()
             .skip(datetime.find(' ').unwrap() + 1)
             .collect::<String>()
-            .parse::<usize>()
-            .unwrap()
+            .parse::<usize>()?
             - 1;
 
         month_str = Time::load_user_locale()?.long_month_name(month_nb);

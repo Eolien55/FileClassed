@@ -18,12 +18,33 @@ pub fn get_config_args() -> (conf::Config, String, conf::DeclaredType) {
 pub fn clean(config: &mut conf::Config) -> bool {
     let mut fatal = false;
 
-    config.dest = String::from(shellexpand::env(&config.dest).unwrap());
+    match shellexpand::env(&config.dest) {
+        Ok(result) => config.dest = String::from(result),
+        Err(e) => {
+            log::error!(
+                "Error while expanding destination : {}. Exiting",
+                e.to_string()
+            );
+            fatal = true;
+            return fatal;
+        }
+    }
     config.dirs = config
         .dirs
         .iter()
-        .map(|dir| (String::from(shellexpand::env(&dir).unwrap())))
+        .map(|dir| match shellexpand::env(&dir) {
+            Ok(result) => String::from(result),
+            Err(e) => {
+                log::error!("Error while expanding dirs : {}. Exiting", e.to_string());
+                fatal = true;
+                String::from(dir)
+            }
+        })
         .collect();
+
+    if fatal {
+        return fatal;
+    }
 
     let existing_dirs: HashSet<String> = config
         .dirs

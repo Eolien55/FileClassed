@@ -6,7 +6,16 @@ use fcs::{conf, main_config, run};
 
 fn main() {
     let verbose = conf::cli::get_verbose();
-    init_with_level(verbose.unwrap_or(log::Level::Error)).unwrap();
+    match init_with_level(verbose.unwrap_or(log::Level::Error)) {
+        Ok(_) => (),
+        Err(e) => {
+            println!(
+                "Error happenned while setting up logger : {}. Exiting",
+                e.to_string()
+            );
+            exit(exitcode::DATAERR);
+        }
+    }
 
     log::trace!("Setting up human panic");
     human_panic::setup_panic!();
