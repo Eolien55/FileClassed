@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path;
 
-pub use dirs::home_dir as home_directory;
-
 #[derive(Debug)]
 pub struct Config {
     pub dest: String,
@@ -31,17 +29,6 @@ pub fn exists(the_path: &String) -> bool {
     return path::Path::new(the_path.as_str()).exists();
 }
 
-macro_rules! home_dir {
-    ($dir:expr) => {
-        format!(
-            "{}{}{}",
-            lib::home_directory().unwrap().to_str().unwrap(),
-            path::MAIN_SEPARATOR,
-            $dir
-        )
-    };
-}
-
 macro_rules! which_declared {
     ($val:expr) => {
         match $val {
@@ -57,5 +44,4 @@ macro_rules! which_declared {
     };
 }
 
-pub(crate) use home_dir;
 pub(crate) use which_declared;

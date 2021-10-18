@@ -35,8 +35,7 @@ pub fn clean(config: &mut conf::Config) -> bool {
         .map(|dir| match shellexpand::full(&dir) {
             Ok(result) => String::from(result),
             Err(e) => {
-                log::error!("Error while expanding dirs : {}. Exiting", e.to_string());
-                fatal = true;
+                log::warn!("Error while expanding dirs : {}", e.to_string());
                 String::from(dir)
             }
         })
@@ -55,7 +54,10 @@ pub fn clean(config: &mut conf::Config) -> bool {
 
     let non_existing_dirs = config.dirs.difference(&existing_dirs);
     for dir in non_existing_dirs {
-        log::warn!("Watching directory \"{}\" doesn't exist. Not using it", dir);
+        log::warn!(
+            "Watching directory \"{}\" doesn't exist or can't be expanded. Not using it",
+            dir
+        );
     }
 
     config.dirs = existing_dirs;

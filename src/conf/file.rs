@@ -1,4 +1,4 @@
-use dirs::config_dir;
+use dirs_next::config_dir;
 
 use std::fs;
 use std::path;

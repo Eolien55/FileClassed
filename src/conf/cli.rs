@@ -1,4 +1,4 @@
-use dirs::config_dir;
+use dirs_next::config_dir;
 use structopt::StructOpt;
 
 use std::collections::{HashMap, HashSet};
@@ -103,14 +103,17 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
         dirs = args.dir.unwrap();
         declared[lib::which_declared!("dirs")] = true;
     } else {
-        dirs = vec![lib::home_dir!("Scolaire"), lib::home_dir!("usb")]
+        dirs = vec!["~/Scolaire", "~/usb"]
+            .iter()
+            .map(|x| x.to_string())
+            .collect();
     }
 
     if !args.dest.is_none() {
         dest = args.dest.unwrap();
         declared[lib::which_declared!("dest")] = true;
     } else {
-        dest = lib::home_dir!("Scolaire");
+        dest = "~/Scolaire".to_string();
     }
 
     once = args.once;
