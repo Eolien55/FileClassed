@@ -18,7 +18,7 @@ pub fn get_config_args() -> (conf::Config, String, conf::DeclaredType) {
 pub fn clean(config: &mut conf::Config) -> bool {
     let mut fatal = false;
 
-    match shellexpand::env(&config.dest) {
+    match shellexpand::full(&config.dest) {
         Ok(result) => config.dest = String::from(result),
         Err(e) => {
             log::error!(
@@ -32,7 +32,7 @@ pub fn clean(config: &mut conf::Config) -> bool {
     config.dirs = config
         .dirs
         .iter()
-        .map(|dir| match shellexpand::env(&dir) {
+        .map(|dir| match shellexpand::full(&dir) {
             Ok(result) => String::from(result),
             Err(e) => {
                 log::error!("Error while expanding dirs : {}. Exiting", e.to_string());
