@@ -74,23 +74,49 @@ pub fn get_verbose() -> Option<log::Level> {
     return verbose.log_level();
 }
 
+macro_rules! define {
+    ($args_entry:expr, $val:expr, $fallback:expr, $name:expr, $var:expr, $declared:expr) => {
+        if !$args_entry.is_none() {
+            $var = $val;
+            $declared[lib::which_declared!($name)] = true;
+        } else {
+            $var = $fallback;
+        }
+    };
+
+    ($args_entry:expr, $fallback:expr, $name:expr, $var:expr, $declared:expr) => {
+        if !$args_entry.is_none() {
+            $var = $args_entry.unwrap();
+            $declared[lib::which_declared!($name)] = true;
+        } else {
+            $var = $fallback;
+        }
+    };
+
+    ($args_entry:expr, $name:expr, $var:expr, $declared:expr) => {
+        $var = $args_entry;
+        $declared[lib::which_declared!($name)] = $var;
+    }
+}
+
 pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     // Processing Options
     let args = Cli::from_args();
     let mut declared: lib::DeclaredType = [false, false, false, false, false, false, false];
 
     let config: String;
-    if !args.config.is_none() {
-        config = args.config.unwrap();
-        declared[lib::which_declared!("config")] = true;
-    } else {
-        config = format!(
+    define!(
+        args.config,
+        format!(
             "{}{}{}",
             config_dir().unwrap().to_str().unwrap(),
             path::MAIN_SEPARATOR,
             "fcs.yml"
-        );
-    }
+        ),
+        "config",
+        config,
+        declared
+    );
 
     let dest: String;
     let mut dirs: Vec<String>;
@@ -99,64 +125,48 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     let codes: HashMap<String, String>;
     let timeinfo: bool;
 
-    if !args.dir.is_none() {
-        dirs = args.dir.unwrap();
-        declared[lib::which_declared!("dirs")] = true;
-    } else {
-        dirs = vec!["~/Scolaire", "~/usb"]
+    define!(
+        args.dir,
+        vec!["~/Scolaire", "~/usb"]
             .iter()
             .map(|x| x.to_string())
-            .collect();
-    }
+            .collect(),
+        "dirs",
+        dirs,
+        declared
+    );
 
-    if !args.dest.is_none() {
-        dest = args.dest.unwrap();
-        declared[lib::which_declared!("dest")] = true;
-    } else {
-        dest = "~/Scolaire".to_string();
-    }
+    define!(args.dest, "~/Scolaire".to_string(), "dest", dest, declared);
 
-    once = args.once;
-    declared[lib::which_declared!("once")] = once;
+    define!(args.once, "once", once, declared);
 
-    if !args.sleep.is_none() {
-        sleep = args.sleep.unwrap();
-        declared[lib::which_declared!("sleep")] = true;
-    } else {
-        sleep = 1000;
-    }
+    define!(args.sleep, 1000, "sleep", sleep, declared);
 
-    if !args.codes.is_none() {
-        codes = args
-            .codes
-            .unwrap()
-            .iter()
-            .map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned()))
-            .collect();
-        declared[lib::which_declared!("codes")] = true;
-    } else {
-        codes = [
-            ("chin", "Chinois"),
-            ("en", "Anglais"),
-            ("eps", "EPS"),
-            ("fr", "Français"),
-            ("glb", "Global"),
-            ("gr", "Grec"),
-            ("hg", "Histoire-Géographie"),
-            ("info", "Informatique"),
-            ("mt", "Mathématiques"),
-            ("pc", "Physique-Chimie"),
-            ("ses", "Sciences Économiques et Sociales"),
-            ("svt", "SVT"),
-            ("vdc", "Vie de Classe"),
-        ]
+    define!(args.codes, args
+        .codes
+        .unwrap()
         .iter()
-        .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
-        .collect();
-    }
+        .map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned()))
+        .collect(),[
+        ("chin", "Chinois"),
+        ("en", "Anglais"),
+        ("eps", "EPS"),
+        ("fr", "Français"),
+        ("glb", "Global"),
+        ("gr", "Grec"),
+        ("hg", "Histoire-Géographie"),
+        ("info", "Informatique"),
+        ("mt", "Mathématiques"),
+        ("pc", "Physique-Chimie"),
+        ("ses", "Sciences Économiques et Sociales"),
+        ("svt", "SVT"),
+        ("vdc", "Vie de Classe"),
+    ]
+    .iter()
+    .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
+    .collect(), "codes", codes, declared);
 
-    timeinfo = args.timeinfo;
-    declared[lib::which_declared!("timeinfo")] = timeinfo;
+    define!(args.timeinfo, "timeinfo", timeinfo, declared);
 
     dirs.shrink_to_fit();
     let dirs: HashSet<String> = dirs.into_iter().collect();
