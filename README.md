@@ -2,6 +2,8 @@
 
 Efficient, lightweight, configurable file organizer. This project is very simple : it takes a file in certains directories (that can be configured), then organize them, and sends them to one directory (that can be configured, too).
 
+Feel free to open pull requests or issues.
+
 ## How it works
 
 The way this program organizes files could be conflicting with some normal software behaviour. Note that this doesn't keep references between files ; LaTeX code would thus need to be a little changed. FileClassed should only be used for non-IT classification.
@@ -29,7 +31,7 @@ Then, you should have a new program named fcs that works as stated before.
 
 ## Configuring
 
-See `fcs --help` and fcs.yml in the repo.
+See `fcs --help` and default.yml in the repo.
+You can easily configure this program, by creating the according configuration file. In Windows, this would be `C:\Users\<User>\AppData\Roaming\fcs\init.yml`. This would be `/home/<user>/.config/fcs/init.yml` on Linux or BSD. Note that there is no such thing as a system-wide configuration file, for portability reasons (MacOS and Windows people couldn't use it). Note finally that editing the configuration file isn't very practical on MacOS and Windows because of the ugly paths, so you may want to create a link to it in your home directory.
 
 This program is free software (as stated in LICENSE), and published under the GPLv3 license.
-
