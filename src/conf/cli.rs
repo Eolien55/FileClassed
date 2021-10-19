@@ -1,9 +1,13 @@
 use dirs_next::config_dir;
 use structopt::StructOpt;
+use structopt::clap::Shell;
 
+use std::str::FromStr;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::path;
+use std::io;
+use std::process::exit;
 
 use super::lib;
 
@@ -65,6 +69,10 @@ struct Cli {
     /// Makes the program verbose
     #[structopt(flatten)]
     verbose: clap_verbosity_flag::Verbosity,
+
+    /// Generates completion script for specified shell and writing it on stdout
+    #[structopt(long, value_name="SHELL")]
+    completion: Option<String>,
 }
 
 pub fn get_verbose() -> Option<log::Level> {
@@ -103,6 +111,20 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     // Processing Options
     let args = Cli::from_args();
     let mut declared: lib::DeclaredType = [false, false, false, false, false, false, false];
+
+    if !args.completion.is_none() {
+        match Shell::from_str(&args.completion.unwrap()) {
+            Ok(shell) => {
+                let mut app = Cli::clap();
+                app.gen_completions_to("fcs", shell, &mut io::stdout());
+                exit(exitcode::OK);
+            },
+            Err(e) => {
+                log::error!("{}", e.to_string());
+                exit(exitcode::DATAERR);
+            },
+        }
+    }
 
     let config: String;
     define!(
