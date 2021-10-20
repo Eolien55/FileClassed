@@ -1,13 +1,13 @@
 use dirs_next::config_dir;
-use structopt::StructOpt;
 use structopt::clap::Shell;
+use structopt::StructOpt;
 
-use std::str::FromStr;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::path;
 use std::io;
+use std::path;
 use std::process::exit;
+use std::str::FromStr;
 
 use super::lib;
 
@@ -71,7 +71,7 @@ struct Cli {
     verbose: clap_verbosity_flag::Verbosity,
 
     /// Generates completion script for specified shell and writing it on stdout
-    #[structopt(long, value_name="SHELL")]
+    #[structopt(long, value_name = "SHELL")]
     completion: Option<String>,
 }
 
@@ -104,7 +104,7 @@ macro_rules! define {
     ($args_entry:expr, $name:expr, $var:expr, $declared:expr) => {
         $var = $args_entry;
         $declared[lib::which_declared!($name)] = $var;
-    }
+    };
 }
 
 pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
@@ -118,11 +118,11 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
                 let mut app = Cli::clap();
                 app.gen_completions_to("fcs", shell, &mut io::stdout());
                 exit(exitcode::OK);
-            },
+            }
             Err(e) => {
                 log::error!("{}", e.to_string());
                 exit(exitcode::DATAERR);
-            },
+            }
         }
     }
 
@@ -164,29 +164,35 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
 
     define!(args.sleep, 1000, "sleep", sleep, declared);
 
-    define!(args.codes, args
-        .codes
-        .unwrap()
+    define!(
+        args.codes,
+        args.codes
+            .unwrap()
+            .iter()
+            .map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned()))
+            .collect(),
+        [
+            ("chin", "Chinois"),
+            ("en", "Anglais"),
+            ("eps", "EPS"),
+            ("fr", "Français"),
+            ("glb", "Global"),
+            ("gr", "Grec"),
+            ("hg", "Histoire-Géographie"),
+            ("info", "Informatique"),
+            ("mt", "Mathématiques"),
+            ("pc", "Physique-Chimie"),
+            ("ses", "Sciences Économiques et Sociales"),
+            ("svt", "SVT"),
+            ("vdc", "Vie de Classe"),
+        ]
         .iter()
-        .map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned()))
-        .collect(),[
-        ("chin", "Chinois"),
-        ("en", "Anglais"),
-        ("eps", "EPS"),
-        ("fr", "Français"),
-        ("glb", "Global"),
-        ("gr", "Grec"),
-        ("hg", "Histoire-Géographie"),
-        ("info", "Informatique"),
-        ("mt", "Mathématiques"),
-        ("pc", "Physique-Chimie"),
-        ("ses", "Sciences Économiques et Sociales"),
-        ("svt", "SVT"),
-        ("vdc", "Vie de Classe"),
-    ]
-    .iter()
-    .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
-    .collect(), "codes", codes, declared);
+        .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
+        .collect(),
+        "codes",
+        codes,
+        declared
+    );
 
     define!(args.timeinfo, "timeinfo", timeinfo, declared);
 

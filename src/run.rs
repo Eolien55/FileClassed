@@ -9,7 +9,7 @@ use std::io::prelude::*;
 use std::path;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc,
+    mpsc, Arc,
 };
 use std::thread::sleep;
 use std::time;
@@ -152,6 +152,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
     let config_file_s = config_file.clone();
     let mut background_thread: Option<std::thread::JoinHandle<()>> = None;
+    let (tx, rx) = mpsc::channel::<bool>();
 
     if path::Path::new(&config_file).exists() && !my_config.once {
         log::trace!("Setting up config watcher");
@@ -168,7 +169,19 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                 .unwrap()
                 .modified()
                 .unwrap();
-            loop {
+            'main_loop: loop {
+                match rx.recv() {
+                    Ok(mesg) => {
+                        if mesg {
+                            break 'main_loop;
+                        }
+                    }
+                    Err(e) => {
+                        log::error!("Critical ! I'm disconnected from my parent process ! Exiting ! Note : {}", e.to_string());
+                        break 'main_loop;
+                    }
+                }
+
                 opened_config_file = fs::File::open(&config_file_s);
 
                 if opened_config_file.is_err() {
@@ -183,14 +196,11 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                         .unwrap()
                         .modified()
                         .unwrap();
+
                     if old_last_change < new_last_change {
                         config_changed_s.store(true, Ordering::SeqCst);
                         old_last_change = new_last_change;
                     };
-                }
-
-                if should_end_s_s.load(Ordering::SeqCst) {
-                    break;
                 }
 
                 if path::Path::new(&format!("{}{}fcs-should_end", dest_s, path::MAIN_SEPARATOR))
@@ -199,10 +209,8 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                     should_end_s_s.store(true, Ordering::SeqCst);
                     fs::remove_file(&format!("{}{}fcs-should_end", dest_s, path::MAIN_SEPARATOR))
                         .unwrap();
-                    break;
+                    break 'main_loop;
                 }
-
-                sleep(time::Duration::from_secs(2));
             }
         }));
     }
@@ -216,6 +224,18 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
     log::trace!("Starting my job");
     'outer: while !should_end.load(Ordering::SeqCst) {
+        match tx.send(false) {
+            Ok(_) => (),
+            Err(e) => {
+                log::error!(
+                    "Critical ! I'm disconnected from my child ! Exiting ! Note {}",
+                    e.to_string()
+                );
+                should_end.store(true, Ordering::SeqCst);
+                break 'outer;
+            }
+        }
+
         for dir in &my_config.dirs {
             let files: Vec<fs::DirEntry> = ScanDir::files()
                 .walk(dir, |iter| {
@@ -249,7 +269,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         }
 
         if my_config.once {
-            break;
+            break 'outer;
         }
 
         sleep(time::Duration::from_millis(my_config.sleep as u64));
@@ -270,6 +290,12 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
     if !background_thread.is_none() {
         log::trace!("Waiting for my watching child to end");
+        match tx.send(true) {
+            Ok(_) => (),
+            Err(_) => {
+                log::warn!("I am disconnected from my child, but I was ending anyway so...");
+            }
+        }
         background_thread.unwrap().join().unwrap();
     }
 }
