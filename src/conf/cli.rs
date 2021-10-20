@@ -73,6 +73,10 @@ struct Cli {
     /// Generates completion script for specified shell and writing it on stdout
     #[structopt(long, value_name = "SHELL")]
     completion: Option<String>,
+
+    /// Runs in static mode, ie not reloading configuration file on changes
+    #[structopt(short = "-S", long = "--static")]
+    static_mode: bool,
 }
 
 pub fn get_verbose() -> Option<log::Level> {
@@ -110,7 +114,7 @@ macro_rules! define {
 pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     // Processing Options
     let args = Cli::from_args();
-    let mut declared: lib::DeclaredType = [false, false, false, false, false, false, false];
+    let mut declared: lib::DeclaredType = [false, false, false, false, false, false, false, false];
 
     if !args.completion.is_none() {
         match Shell::from_str(&args.completion.unwrap()) {
@@ -146,6 +150,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     let sleep: usize;
     let codes: HashMap<String, String>;
     let timeinfo: bool;
+    let static_mode: bool;
 
     define!(
         args.dir,
@@ -196,6 +201,8 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
 
     define!(args.timeinfo, "timeinfo", timeinfo, declared);
 
+    define!(args.static_mode, "static_mode", static_mode, declared);
+
     dirs.shrink_to_fit();
     let dirs: HashSet<String> = dirs.into_iter().collect();
 
@@ -207,6 +214,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
             sleep,
             codes,
             timeinfo,
+            static_mode,
         },
         config,
         declared,

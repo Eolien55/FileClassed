@@ -11,9 +11,10 @@ pub struct Config {
     pub sleep: usize,
     pub codes: HashMap<String, String>,
     pub timeinfo: bool,
+    pub static_mode: bool,
 }
 
-pub type DeclaredType = [bool; 7];
+pub type DeclaredType = [bool; 8];
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigSerDe {
@@ -23,6 +24,7 @@ pub struct ConfigSerDe {
     pub sleep: Option<usize>,
     pub codes: Option<HashMap<String, String>>,
     pub timeinfo: Option<bool>,
+    pub static_mode: Option<bool>,
 }
 
 pub fn exists(the_path: &String) -> bool {
@@ -39,7 +41,8 @@ macro_rules! which_declared {
             "codes" => 4,
             "config" => 5,
             "timeinfo" => 6,
-            _ => 7,
+            "static_mode" => 7,
+            _ => 8,
         }
     };
 }

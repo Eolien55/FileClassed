@@ -154,7 +154,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
     let mut background_thread: Option<std::thread::JoinHandle<()>> = None;
     let (tx, rx) = mpsc::channel::<bool>();
 
-    if path::Path::new(&config_file).exists() && !my_config.once {
+    if path::Path::new(&config_file).exists() && !my_config.once && !my_config.static_mode {
         log::trace!("Setting up config watcher");
 
         let should_end_s_s = should_end_s.clone();
@@ -224,18 +224,6 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
     log::trace!("Starting my job");
     'outer: while !should_end.load(Ordering::SeqCst) {
-        match tx.send(false) {
-            Ok(_) => (),
-            Err(e) => {
-                log::error!(
-                    "Critical ! I'm disconnected from my child ! Exiting ! Note {}",
-                    e.to_string()
-                );
-                should_end.store(true, Ordering::SeqCst);
-                break 'outer;
-            }
-        }
-
         for dir in &my_config.dirs {
             let files: Vec<fs::DirEntry> = ScanDir::files()
                 .walk(dir, |iter| {
@@ -272,19 +260,36 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
             break 'outer;
         }
 
+        // Beyond this, users running with -o won't ever have to suffer the wait
+        // of sending info to the other thread or to reload a configuration file,
+        // or even worse, just sleeping
         sleep(time::Duration::from_millis(my_config.sleep as u64));
 
-        if config_changed.load(Ordering::SeqCst) {
-            log::info!("Config changed ! Loading it");
+        if !my_config.static_mode {
+            if config_changed.load(Ordering::SeqCst) {
+                log::info!("Config changed ! Loading it");
 
-            config_changed.store(false, Ordering::SeqCst);
-            get_config(&mut my_config, &mut config_file, &declared);
+                config_changed.store(false, Ordering::SeqCst);
+                get_config(&mut my_config, &mut config_file, &declared);
 
-            if clean(&mut my_config) {
-                should_end.store(true, Ordering::SeqCst);
+                if clean(&mut my_config) {
+                    should_end.store(true, Ordering::SeqCst);
+                }
+
+                make_tables(&my_config.codes, &my_config.dest);
             }
 
-            make_tables(&my_config.codes, &my_config.dest);
+            match tx.send(false) {
+                Ok(_) => (),
+                Err(e) => {
+                    log::error!(
+                        "Critical ! I'm disconnected from my child ! Exiting ! Note {}",
+                        e.to_string()
+                    );
+                    should_end.store(true, Ordering::SeqCst);
+                    break 'outer;
+                }
+            }
         }
     }
 

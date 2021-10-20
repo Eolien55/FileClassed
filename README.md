@@ -32,6 +32,8 @@ Then, you should have a new program named fcs that works as stated before.
 ## Configuring
 
 See `fcs --help` and default.yml in the repo.
-You can easily configure this program, by creating the according configuration file. In Windows, this would be `C:\Users\<User>\AppData\Roaming\fcs\init.yml`. This would be `/home/<user>/.config/fcs/init.yml` on Linux or BSD. Note that there is no such thing as a system-wide configuration file, for portability reasons (MacOS and Windows people couldn't use it). Note finally that editing the configuration file isn't very practical on MacOS and Windows because of the ugly paths, so you may want to create a link to it in your home directory.
+You can easily configure this program, by creating the according configuration file. In Windows, this would be `C:\Users\<User>\AppData\Roaming\fcs\init.yml`. This would be `/home/<user>/.config/fcs/init.yml` on Linux or BSD. Note that there is no such thing as a system-wide configuration file, for portability reasons (MacOS and Windows people couldn't use it). Note finally that editing the configuration file is a lot of pain on MacOS and Windows because of the ugly paths, so you may want to create a link to it in your home directory.
+
+Note that FileClassed updates automatically when config file changes, except if you use the `-S` flag or set the `static_mode` field  to `true` in the config file.
 
 This program is free software (as stated in LICENSE), and published under the GPLv3 license.

@@ -7,6 +7,7 @@ dirs:
 once: false
 sleep: 1000
 timeinfo: true
+static_mode: false
 
 codes:
   chin: Chinois

@@ -69,6 +69,13 @@ pub fn get_config(
                         declared,
                         false
                     );
+                    replace_value!(
+                        config.static_mode,
+                        from_file.static_mode,
+                        "static_mode",
+                        declared,
+                        false
+                    );
                 }
                 Err(e) => {
                     log::error!("Error happenned while parsing config file \"{}\". Falling back to defaults", e.to_string());
