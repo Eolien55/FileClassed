@@ -1,25 +1,23 @@
-dest: ~/Documents/Scolaire
+---
+dest: ~/Scolaire
 dirs:
+  - ~/Scolaire
   - ~/usb
-  - ~/Documents/Scolaire
-
-
 once: false
-sleep: 1000
-timeinfo: true
+timeinfo: false
 static_mode: false
-
+sleep: 1000
 codes:
-  chin: Chinois
-  en:   Anglais
-  eps:  EPS
-  gr:   Grec
-  pc:   Physique-Chimie
-  ses:  Sciences Économiques et Sociales
-  svt:  SVT
-  glb:  Global
-  fr:   Français
-  hg:   Histoire-Géographie
-  mt:   Mathématiques
+  hg: Histoire-Géographie
+  ses: Sciences Économiques et Sociales
   info: Informatique
-  vdc:  Vie de Classe
+  en: Anglais
+  chin: Chinois
+  mt: Mathématiques
+  svt: SVT
+  eps: EPS
+  pc: Physique-Chimie
+  glb: Global
+  vdc: Vie de Classe
+  gr: Grec
+  fr: Français
