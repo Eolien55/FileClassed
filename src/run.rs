@@ -2,7 +2,7 @@ use chrono::{offset::TimeZone, Local, NaiveDateTime};
 use locale::Time;
 use scan_dir::ScanDir;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs;
 use std::io::prelude::*;
@@ -15,6 +15,7 @@ use std::thread::sleep;
 use std::time;
 
 use crate::conf::file::get_config;
+use crate::conf::lib;
 use crate::conf::lib::{Config, DeclaredType};
 use crate::main_config::clean;
 
@@ -99,18 +100,25 @@ fn get_new_name(
 
 fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>, timeinfo: &bool) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
+        log::warn!(
+            "File `{}` disappeared before I could handle it !",
+            name.to_str().unwrap_or("ERROR WHEN DISPLAYING THE FILE")
+        );
         ()
     }
 
     let timestamp = fs::metadata(&name).unwrap().created().unwrap();
 
     match get_new_name(&name, dest, codes, timestamp, *timeinfo) {
-        Ok(result) => {
-            fs::create_dir_all(&result.1).unwrap();
-            fs::rename(&name, &result.0).unwrap();
-
-            log::info!("Moved path from {:?} to {:?}", name, result.0)
-        }
+        Ok(result) => match fs::create_dir_all(&result.1) {
+            Ok(_) => match fs::rename(&name, &result.0) {
+                Ok(_) => log::info!("Moved path from {:?} to {:?}", name, result.0),
+                Err(_) => {
+                    log::warn!("File `{:?}` disappeared before I could handle it !", name)
+                }
+            },
+            Err(_) => log::warn!("File `{:?}` disappeared before I could handle it !", name),
+        },
 
         Err(e) => log::error!("Error happened with file {:?} : {}", name, e.to_string()),
     }
@@ -222,9 +230,15 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
     })
     .unwrap();
 
+    let mut dirs = my_config.dirs.clone();
+
     log::trace!("Starting my job");
     'outer: while !should_end.load(Ordering::SeqCst) {
-        for dir in &my_config.dirs {
+        for dir in &dirs {
+            if !lib::test_path!(&dir, "dir") {
+                break;
+            }
+
             let files: Vec<fs::DirEntry> = ScanDir::files()
                 .walk(dir, |iter| {
                     iter.filter(|&(_, ref name)| {
@@ -237,14 +251,27 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                     .collect()
                 })
                 .unwrap();
+            
+            if !lib::test_path!(&my_config.dest, "dir") {
+                log::error!("Destination `{}` doesn't exist anymore ! Exiting !", my_config.dest);
+                break 'outer;
+            }
+    
 
             for entry in files {
-                if should_end.load(Ordering::SeqCst) {
+                let current_path = entry.path();
+                if should_end.load(Ordering::SeqCst)
+                {
+                    break 'outer;
+                }
+
+                if !lib::test_path!(&my_config.dest, "dir") {
+                    log::error!("Destination `{}` doesn't exist anymore ! Exiting !", my_config.dest);
                     break 'outer;
                 }
 
                 handle(
-                    entry.path(),
+                    current_path,
                     &my_config.dest,
                     &my_config.codes,
                     &my_config.timeinfo,
@@ -290,6 +317,29 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                     break 'outer;
                 }
             }
+        }
+
+        let non_existing_dirs: HashSet<String> = my_config
+            .dirs
+            .iter()
+            .filter(|dir| !lib::test_path!(&dir, "dir"))
+            .map(|dir| dir.to_owned())
+            .collect();
+        for dir in &non_existing_dirs {
+            log::warn!(
+                "Watching directory `{}` doesn't exist anymore ! Not using it",
+                dir
+            );
+        }
+
+        dirs = my_config
+            .dirs
+            .difference(&non_existing_dirs)
+            .map(|dir| dir.to_owned())
+            .collect();
+        if my_config.dirs.is_empty() {
+            log::error!("No directory available anymore ! Exiting");
+            break 'outer;
         }
     }
 

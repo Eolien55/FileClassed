@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use std::collections::{HashMap, HashSet};
-use std::path;
 
 #[derive(Debug)]
 pub struct Config {
@@ -27,8 +26,19 @@ pub struct ConfigSerDe {
     pub codes: Option<HashMap<String, String>>,
 }
 
-pub fn exists(the_path: &String) -> bool {
-    return path::Path::new(the_path.as_str()).exists();
+macro_rules! test_path {
+    ($the_path:expr, $arg:expr) => {{
+        let path = std::path::Path::new($the_path);
+        let mut result = path.exists();
+
+        match $arg {
+            "file" => result = result && path.is_file(),
+            "dir" => result = result && path.is_dir(),
+            _ => (),
+        };
+
+        result
+    }};
 }
 
 macro_rules! which_declared {
@@ -47,4 +57,5 @@ macro_rules! which_declared {
     };
 }
 
+pub(crate) use test_path;
 pub(crate) use which_declared;

@@ -48,14 +48,14 @@ pub fn clean(config: &mut conf::Config) -> bool {
     let existing_dirs: HashSet<String> = config
         .dirs
         .iter()
-        .filter(|&dir| conf::exists(&dir))
+        .filter(|&dir| conf::test_path!(&dir, "dir"))
         .map(|dir| String::from(dir))
         .collect();
 
     let non_existing_dirs = config.dirs.difference(&existing_dirs);
     for dir in non_existing_dirs {
         log::warn!(
-            "Watching directory \"{}\" doesn't exist or can't be expanded. Not using it",
+            "Watching directory `{}` doesn't exist, can't be expanded or isn't a directory. Not using it",
             dir
         );
     }
@@ -66,8 +66,11 @@ pub fn clean(config: &mut conf::Config) -> bool {
         fatal = true;
     }
 
-    if !conf::exists(&config.dest) {
-        log::error!("Destination \"{}\" doesn't exist ! Exiting", config.dest);
+    if !(conf::test_path!(&config.dest, "dir")) {
+        log::error!(
+            "Destination `{}` doesn't exist, or isn't a directory ! Exiting",
+            config.dest
+        );
         fatal = true;
     }
 
@@ -97,7 +100,7 @@ pub fn clean(config: &mut conf::Config) -> bool {
 
     for key in invalid_codes_keys {
         log::warn!(
-            "Shortcut \"{}={}\" isn't valid ! Not using it",
+            "Shortcut `{}={}` isn't valid ! Not using it",
             key,
             config.codes[key]
         );

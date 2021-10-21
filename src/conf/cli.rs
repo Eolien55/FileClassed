@@ -42,7 +42,7 @@ pub fn clean_custom(config: &mut lib::Config) -> bool {
 
     for key in invalid_codes_keys {
         log::warn!(
-            "Shortcut \"{}={}\" isn't valid ! Not using it",
+            "Shortcut `{}={}` isn't valid ! Not using it",
             key,
             config.codes[key]
         );
