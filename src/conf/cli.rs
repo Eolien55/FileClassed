@@ -11,6 +11,54 @@ use std::str::FromStr;
 
 use super::lib;
 
+// The bool value indicates if the config is so messed
+// up that it is unusable, and if the program should exit
+pub fn clean_custom(config: &mut lib::Config) -> bool {
+    let mut fatal = false;
+
+    let valid_codes: HashMap<String, String> = config
+        .codes
+        .iter()
+        .filter(|entry| {
+            !vec![".", ".."].contains(&entry.1.as_str())
+                && entry.0.matches('.').count() < 1
+                && entry.0.len() > 0
+                && entry.0.matches('/').count() < 1
+                && entry.1.len() > 0
+                && entry.1.matches('/').count() < 1
+        })
+        .map(|entry| (entry.0.to_owned(), entry.1.to_owned()))
+        .collect();
+
+    let valid_codes_keys: HashSet<String> =
+        valid_codes.iter().map(|entry| entry.0.to_owned()).collect();
+    let codes_keys: HashSet<String> = config
+        .codes
+        .iter()
+        .map(|entry| entry.0.to_owned())
+        .collect();
+
+    let invalid_codes_keys = codes_keys.difference(&valid_codes_keys);
+
+    for key in invalid_codes_keys {
+        log::warn!(
+            "Shortcut \"{}={}\" isn't valid ! Not using it",
+            key,
+            config.codes[key]
+        );
+    }
+    config.codes = valid_codes;
+
+    if config.codes.is_empty() {
+        log::error!("No shortcut set up, or none of them are valid ! Exiting");
+        fatal = true;
+    }
+
+    log::debug!("Here's the config : {:?}", config);
+
+    return fatal;
+}
+
 fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error>>
 where
     T: std::str::FromStr,
@@ -71,12 +119,16 @@ struct Cli {
     verbose: clap_verbosity_flag::Verbosity,
 
     /// Generates completion script for specified shell and writing it on stdout
-    #[structopt(long, value_name = "SHELL")]
+    #[structopt(long, value_name = "shell")]
     completion: Option<String>,
 
     /// Runs in static mode, ie not reloading configuration file on changes
     #[structopt(short = "-S", long = "--static")]
     static_mode: bool,
+
+    /// Generates configuration file from CLI arguments
+    #[structopt(short, long)]
+    generate_config: bool,
 }
 
 pub fn get_verbose() -> Option<log::Level> {
@@ -206,8 +258,8 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     dirs.shrink_to_fit();
     let dirs: HashSet<String> = dirs.into_iter().collect();
 
-    return (
-        lib::Config {
+    if args.generate_config {
+        let mut result = lib::Config {
             dest,
             dirs,
             once,
@@ -215,8 +267,51 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
             codes,
             timeinfo,
             static_mode,
-        },
-        config,
-        declared,
-    );
+        };
+
+        match clean_custom(&mut result) {
+            true => {
+                log::error!("Configuration is unusable");
+                exit(exitcode::DATAERR);
+            }
+            false => (),
+        }
+
+        let yaml_result = lib::ConfigSerDe {
+            dest: Some(result.dest),
+            dirs: Some(result.dirs),
+            once: Some(result.once),
+            timeinfo: Some(result.timeinfo),
+            static_mode: Some(result.static_mode),
+            sleep: Some(result.sleep),
+            codes: Some(result.codes),
+        };
+
+        let deserialized = match serde_yaml::to_string(&yaml_result) {
+            Ok(result) => result,
+            Err(e) => {
+                log::error!(
+                    "Failed somehow to parse configuration. Error : {}",
+                    e.to_string()
+                );
+                exit(exitcode::DATAERR);
+            }
+        };
+
+        print!("{}", deserialized);
+
+        exit(exitcode::OK);
+    }
+
+    let result = lib::Config {
+        dest,
+        dirs,
+        once,
+        sleep,
+        codes,
+        timeinfo,
+        static_mode,
+    };
+
+    return (result, config, declared);
 }

@@ -21,10 +21,10 @@ pub struct ConfigSerDe {
     pub dest: Option<String>,
     pub dirs: Option<HashSet<String>>,
     pub once: Option<bool>,
-    pub sleep: Option<usize>,
-    pub codes: Option<HashMap<String, String>>,
     pub timeinfo: Option<bool>,
     pub static_mode: Option<bool>,
+    pub sleep: Option<usize>,
+    pub codes: Option<HashMap<String, String>>,
 }
 
 pub fn exists(the_path: &String) -> bool {
