@@ -75,7 +75,7 @@ where
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "FileClassed",
+    name = "fcs",
     about = "Efficient yet customizable file organizer",
     author = "Elie Le Vaillant <elielevaillant2007@gmail.com>",
     setting = structopt::clap::AppSettings::ColoredHelp
