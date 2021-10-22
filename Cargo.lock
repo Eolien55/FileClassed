@@ -189,6 +189,7 @@ dependencies = [
  "human-panic",
  "locale",
  "log",
+ "quote",
  "scan_dir",
  "serde",
  "serde_yaml",

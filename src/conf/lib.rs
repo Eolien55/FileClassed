@@ -2,28 +2,39 @@ use serde::{Deserialize, Serialize};
 
 use std::collections::{HashMap, HashSet};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Config {
-    pub dest: String,
-    pub dirs: HashSet<String>,
     pub once: bool,
     pub sleep: usize,
-    pub codes: HashMap<String, String>,
     pub timeinfo: bool,
     pub static_mode: bool,
+    pub dest: String,
+    pub dirs: HashSet<String>,
+    pub codes: HashMap<String, String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct BuildConfig {
+    pub once: bool,
+    pub sleep: Option<usize>,
+    pub timeinfo: bool,
+    pub static_mode: bool,
+    pub dirs: Option<Vec<String>>,
+    pub dest: Option<String>,
+    pub codes: Option<Vec<(String, String)>>,
 }
 
 pub type DeclaredType = [bool; 8];
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigSerDe {
-    pub dest: Option<String>,
-    pub dirs: Option<HashSet<String>>,
     pub once: Option<bool>,
     pub timeinfo: Option<bool>,
     pub static_mode: Option<bool>,
     pub sleep: Option<usize>,
     pub codes: Option<HashMap<String, String>>,
+    pub dest: Option<String>,
+    pub dirs: Option<HashSet<String>>,
 }
 
 macro_rules! test_path {

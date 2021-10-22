@@ -9,6 +9,7 @@ use std::path;
 use std::process::exit;
 use std::str::FromStr;
 
+use super::defaults::get_defaults;
 use super::lib;
 
 // The bool value indicates if the config is so messed
@@ -86,8 +87,8 @@ struct Cli {
     config: Option<String>,
 
     /// Overrides the watching directories
-    #[structopt(short, long, value_name = "directory")]
-    dir: Option<Vec<String>>,
+    #[structopt(short, long = "dir", value_name = "directory")]
+    dirs: Option<Vec<String>>,
 
     /// Overrides destination directory
     #[structopt(short = "-D", long, value_name = "directory")]
@@ -138,29 +139,34 @@ pub fn get_verbose() -> Option<log::Level> {
     return verbose.log_level();
 }
 
-macro_rules! define {
-    ($args_entry:expr, $val:expr, $fallback:expr, $name:expr, $var:expr, $declared:expr) => {
-        if !$args_entry.is_none() {
-            $var = $val;
-            $declared[lib::which_declared!($name)] = true;
-        } else {
-            $var = $fallback;
+macro_rules! define_option {
+    ($args:expr, $config:expr, $field:ident, $declared:expr, $default:expr) => {
+        $config.$field = match $args.$field {
+            Some(value) => {
+                $declared[lib::which_declared!(quote::quote!($field).to_string().as_str())] = true;
+                Some(value)
+            }
+            None => $default.$field,
         }
     };
 
-    ($args_entry:expr, $fallback:expr, $name:expr, $var:expr, $declared:expr) => {
-        if !$args_entry.is_none() {
-            $var = $args_entry.unwrap();
-            $declared[lib::which_declared!($name)] = true;
-        } else {
-            $var = $fallback;
+    ($args:expr, $config:expr, $declared:expr, $default:expr, $($field:ident),+) => {
+        ($(define_option!($args, $config, $field, $declared, $default),)+)
+    }
+}
+
+macro_rules! define_bool {
+    ($args:expr, $config:expr, $field:ident, $declared:expr) => {
+        {
+            $config.$field = $args.$field;
+            $declared[lib::which_declared!(quote::quote!($field).to_string().as_str())] =
+            $config.$field;
         }
     };
 
-    ($args_entry:expr, $name:expr, $var:expr, $declared:expr) => {
-        $var = $args_entry;
-        $declared[lib::which_declared!($name)] = $var;
-    };
+    ($args:expr, $config:expr, $declared:expr, $($field:ident),+) => {
+        ($(define_bool!($args, $config, $field, $declared),)+)
+    }
 }
 
 pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
@@ -183,91 +189,50 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     }
 
     let config: String;
-    define!(
-        args.config,
-        format!(
-            "{}{}{}",
+
+    config = match args.config {
+        Some(file) => {
+            declared[lib::which_declared!("config")] = true;
+            file
+        }
+        None => format!(
+            "{}{}fcs.yml",
             config_dir().unwrap().to_str().unwrap(),
             path::MAIN_SEPARATOR,
-            "fcs.yml"
         ),
-        "config",
-        config,
-        declared
-    );
+    };
 
-    let dest: String;
-    let mut dirs: Vec<String>;
-    let once: bool;
-    let sleep: usize;
-    let codes: HashMap<String, String>;
-    let timeinfo: bool;
-    let static_mode: bool;
+    let build_default = get_defaults();
 
-    define!(
-        args.dir,
-        vec!["~/Scolaire", "~/usb"]
-            .iter()
-            .map(|x| x.to_string())
-            .collect(),
-        "dirs",
+    let result: lib::Config;
+    let mut build_result: lib::BuildConfig = build_default.clone();
+
+    define_option!(
+        args,
+        build_result,
+        declared,
+        build_result,
+        // Options to define
+        dest,
         dirs,
-        declared
+        sleep,
+        codes
     );
 
-    define!(args.dest, "~/Scolaire".to_string(), "dest", dest, declared);
-
-    define!(args.once, "once", once, declared);
-
-    define!(args.sleep, 1000, "sleep", sleep, declared);
-
-    define!(
-        args.codes,
-        args.codes
-            .unwrap()
-            .iter()
-            .map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned()))
-            .collect(),
-        [
-            ("chin", "Chinois"),
-            ("en", "Anglais"),
-            ("eps", "EPS"),
-            ("fr", "Français"),
-            ("glb", "Global"),
-            ("gr", "Grec"),
-            ("hg", "Histoire-Géographie"),
-            ("info", "Informatique"),
-            ("mt", "Mathématiques"),
-            ("pc", "Physique-Chimie"),
-            ("ses", "Sciences Économiques et Sociales"),
-            ("svt", "SVT"),
-            ("vdc", "Vie de Classe"),
-        ]
-        .iter()
-        .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
-        .collect(),
-        "codes",
-        codes,
-        declared
+    define_bool!(
+        args,
+        build_result,
+        declared,
+        // Bools to define
+        once,
+        timeinfo,
+        static_mode
     );
 
-    define!(args.timeinfo, "timeinfo", timeinfo, declared);
-
-    define!(args.static_mode, "static_mode", static_mode, declared);
-
-    dirs.shrink_to_fit();
-    let dirs: HashSet<String> = dirs.into_iter().collect();
+    result = convert_types(build_result);
 
     if args.generate_config {
-        let mut result = lib::Config {
-            dest,
-            dirs,
-            once,
-            sleep,
-            codes,
-            timeinfo,
-            static_mode,
-        };
+        let mut result = result.clone();
 
         match clean_custom(&mut result) {
             true => {
@@ -297,21 +262,44 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
                 exit(exitcode::DATAERR);
             }
         };
-
         print!("{}", deserialized);
 
         exit(exitcode::OK);
     }
 
+    return (result, config, declared);
+}
+
+fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
+    let codes: HashMap<String, String> = build_result
+        .codes
+        .unwrap()
+        .iter()
+        .map(|x| (x.0.to_owned(), x.1.to_owned()))
+        .collect();
+    let dirs: HashSet<String> = build_result
+        .dirs
+        .unwrap()
+        .iter()
+        .map(|x| x.to_owned())
+        .collect();
+
+    let dest = build_result.dest.unwrap();
+    let sleep = build_result.sleep.unwrap();
+
+    let once = build_result.once;
+    let timeinfo = build_result.timeinfo;
+    let static_mode = build_result.static_mode;
+
     let result = lib::Config {
-        dest,
-        dirs,
-        once,
-        sleep,
         codes,
+        dirs,
+        dest,
+        sleep,
+        once,
         timeinfo,
         static_mode,
     };
 
-    return (result, config, declared);
+    return result;
 }

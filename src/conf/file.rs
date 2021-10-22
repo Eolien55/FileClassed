@@ -3,21 +3,20 @@ use dirs_next::config_dir;
 use std::fs;
 use std::path;
 
+use super::defaults::get_default;
 use super::lib;
 
 macro_rules! replace_value {
-    ($conf1:expr, $conf2:expr, $attr:expr, $declared:expr) => {
-        if !$declared[lib::which_declared!($attr)] && !$conf2.is_none() {
-            $conf1 = $conf2.unwrap();
-        }
+    ($fromfile:expr, $config:expr, $field:ident, $declared:expr, $default:expr) => {
+        {if !$declared[lib::which_declared!(quote::quote!($field).to_string().as_str())] && !$fromfile.$field.is_none() {
+            $config.$field = $fromfile.$field.unwrap();
+        } else if !$declared[lib::which_declared!(quote::quote!($field).to_string().as_str())] {
+            $config.$field = $default.$field;
+        }}
     };
 
-    ($conf1:expr, $conf2:expr, $attr:expr, $declared:expr, $default:expr) => {
-        if !$declared[lib::which_declared!($attr)] && !$conf2.is_none() {
-            $conf1 = $conf2.unwrap();
-        } else if !$declared[lib::which_declared!($attr)] {
-            $conf1 = $default;
-        }
+    ($fromfile:expr, $config:expr, $declared:expr, $default:expr, $($field:ident),+) => {
+        ($(replace_value!($fromfile, $config, $field, $declared, $default),)+)
     };
 }
 
@@ -52,24 +51,20 @@ pub fn get_config(
         Ok(reading_file) => match serde_yaml::from_str::<lib::ConfigSerDe>(&reading_file) {
             Ok(from_file) => {
                 log::debug!("Config from file : {:?}", from_file);
-                replace_value!(config.dirs, from_file.dirs, "dirs", declared);
-                replace_value!(config.dest, from_file.dest, "dest", declared);
-                replace_value!(config.once, from_file.once, "once", declared);
-                replace_value!(config.sleep, from_file.sleep, "sleep", declared);
-                replace_value!(config.codes, from_file.codes, "codes", declared);
+                let default = get_default();
                 replace_value!(
-                    config.timeinfo,
-                    from_file.timeinfo,
-                    "timeinfo",
+                    from_file,
+                    config,
                     declared,
-                    false
-                );
-                replace_value!(
-                    config.static_mode,
-                    from_file.static_mode,
-                    "static_mode",
-                    declared,
-                    false
+                    default,
+                    // Values to replace
+                    dirs,
+                    dest,
+                    once,
+                    sleep,
+                    codes,
+                    timeinfo,
+                    static_mode
                 );
             }
             Err(e) => {
