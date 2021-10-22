@@ -128,9 +128,9 @@ struct Cli {
     static_mode: bool,
 
     /// Generates configuration file from CLI arguments
-    /// Note that the generation isn't deterministic, which means codes
-    /// is very likely to be different if you try it several times, in the way keys are ordered.
-    /// Note finally that the generated config file isn't pretty printed, ie it's quite ugly
+    /// 
+    /// Note that the generation isn't deterministic, which means codes won't be ordered the same way.
+    /// Note also that the generated config file isn't pretty printed, ie it's quite ugly
     #[structopt(short, long)]
     generate_config: bool,
 }
