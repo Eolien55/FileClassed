@@ -169,55 +169,97 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         let dest_s = my_config.dest.clone();
 
         background_thread = Some(std::thread::spawn(move || {
-            let mut opened_config_file: std::io::Result<fs::File>;
-            opened_config_file = fs::File::open(&config_file_s);
-            let mut old_last_change = opened_config_file
-                .unwrap()
-                .metadata()
-                .unwrap()
-                .modified()
-                .unwrap();
-            'main_loop: loop {
+            let mut old_last_change = time::SystemTime::now();
+
+            let mut should_run = true;
+            loop {
+                let opened_config_file = fs::File::open(&config_file_s);
+
+                match opened_config_file {
+                    Ok(result) => match result.metadata() {
+                        Ok(res) => match res.modified() {
+                            Ok(r) => {
+                                old_last_change = r;
+                                break;
+                            }
+                            Err(e) => log::warn!(
+                            "Unable to get modified field of config file. Still running. Note : {}",
+                            e.to_string()
+                        ),
+                        },
+                        Err(e) => log::warn!(
+                            "Unable to get metadata of config file. Still running. Note : {}",
+                            e.to_string()
+                        ),
+                    },
+                    Err(_) => log::warn!(
+                        "Config file `{}` doesn't seem to exist anymore. Child exiting",
+                        config_file_s
+                    ),
+                }
+
                 match rx.recv() {
                     Ok(mesg) => {
                         if mesg {
-                            break 'main_loop;
+                            should_run = false;
+                            break;
                         }
                     }
                     Err(e) => {
                         log::error!("Critical ! I'm disconnected from my parent process ! Exiting ! Note : {}", e.to_string());
-                        break 'main_loop;
+                        should_run = false;
+                        break;
                     }
                 }
+            }
 
-                opened_config_file = fs::File::open(&config_file_s);
+            if should_run {
+                'main_loop: loop {
+                    match rx.recv() {
+                        Ok(mesg) => {
+                            if mesg {
+                                break 'main_loop;
+                            }
+                        }
+                        Err(e) => {
+                            log::error!("Critical ! I'm disconnected from my parent process ! Exiting ! Note : {}", e.to_string());
+                            break 'main_loop;
+                        }
+                    }
 
-                if opened_config_file.is_err() {
-                    log::warn!(
-                        "Config file `{}` doesn't exist anymore ! Can't use it",
-                        config_file_s
-                    );
-                } else {
-                    let new_last_change = opened_config_file
-                        .unwrap()
-                        .metadata()
-                        .unwrap()
-                        .modified()
+                    let opened_config_file = fs::File::open(&config_file_s);
+
+                    if opened_config_file.is_err() {
+                        log::warn!(
+                            "Config file `{}` doesn't exist anymore ! Can't use it",
+                            config_file_s
+                        );
+                    } else {
+                        let new_last_change = opened_config_file
+                            .unwrap()
+                            .metadata()
+                            .unwrap()
+                            .modified()
+                            .unwrap();
+
+                        if old_last_change < new_last_change {
+                            config_changed_s.store(true, Ordering::SeqCst);
+                            old_last_change = new_last_change;
+                        };
+                    }
+
+                    if path::Path::new(&format!("{}{}fcs-should_end", dest_s, path::MAIN_SEPARATOR))
+                        .exists()
+                    {
+                        should_end_s_s.store(true, Ordering::SeqCst);
+                        fs::remove_file(&format!(
+                            "{}{}fcs-should_end",
+                            dest_s,
+                            path::MAIN_SEPARATOR
+                        ))
                         .unwrap();
-
-                    if old_last_change < new_last_change {
-                        config_changed_s.store(true, Ordering::SeqCst);
-                        old_last_change = new_last_change;
-                    };
-                }
-
-                if path::Path::new(&format!("{}{}fcs-should_end", dest_s, path::MAIN_SEPARATOR))
-                    .exists()
-                {
-                    should_end_s_s.store(true, Ordering::SeqCst);
-                    fs::remove_file(&format!("{}{}fcs-should_end", dest_s, path::MAIN_SEPARATOR))
-                        .unwrap();
-                    break 'main_loop;
+                        break 'main_loop;
+                    }
                 }
             }
         }));
@@ -251,22 +293,26 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                     .collect()
                 })
                 .unwrap();
-            
+
             if !lib::test_path!(&my_config.dest, "dir") {
-                log::error!("Destination `{}` doesn't exist anymore ! Exiting !", my_config.dest);
+                log::error!(
+                    "Destination `{}` doesn't exist anymore ! Exiting !",
+                    my_config.dest
+                );
                 break 'outer;
             }
-    
 
             for entry in files {
                 let current_path = entry.path();
-                if should_end.load(Ordering::SeqCst)
-                {
+                if should_end.load(Ordering::SeqCst) {
                     break 'outer;
                 }
 
                 if !lib::test_path!(&my_config.dest, "dir") {
-                    log::error!("Destination `{}` doesn't exist anymore ! Exiting !", my_config.dest);
+                    log::error!(
+                        "Destination `{}` doesn't exist anymore ! Exiting !",
+                        my_config.dest
+                    );
                     break 'outer;
                 }
 
