@@ -194,7 +194,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
                 if opened_config_file.is_err() {
                     log::warn!(
-                        "Config file {} doesn't exist anymore ! Can't use it",
+                        "Config file `{}` doesn't exist anymore ! Can't use it",
                         config_file_s
                     );
                 } else {

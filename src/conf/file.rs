@@ -28,18 +28,15 @@ pub fn get_config(
 ) {
     let mut default_config_files = vec![
         format!(
-            "{}{}{}",
+            "{}{}fcs.yml",
             config_dir().unwrap().to_str().unwrap(),
             path::MAIN_SEPARATOR,
-            "fcs.yml"
         ),
         format!(
-            "{}{}{}{}{}",
+            "{}{}fcs{}init.yml",
             config_dir().unwrap().to_str().unwrap(),
             path::MAIN_SEPARATOR,
-            "fcs",
             path::MAIN_SEPARATOR,
-            "init.yml"
         ),
     ];
 
