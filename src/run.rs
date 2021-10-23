@@ -20,8 +20,8 @@ use crate::conf::lib::{Config, DeclaredType};
 use crate::main_config::clean;
 
 fn get_new_name(
-    name: &path::PathBuf,
-    dest: &String,
+    name: &path::Path,
+    dest: &str,
     codes: &HashMap<String, String>,
     timestamp: time::SystemTime,
     timeinfo: bool,
@@ -95,16 +95,15 @@ fn get_new_name(
     let dir = ending_path.clone();
     ending_path.push(splitted.1);
 
-    return Ok((ending_path, dir));
+    Ok((ending_path, dir))
 }
 
-fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>, timeinfo: &bool) {
+fn handle(name: path::PathBuf, dest: &str, codes: &HashMap<String, String>, timeinfo: &bool) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
         log::warn!(
             "File `{}` disappeared before I could handle it !",
             name.to_str().unwrap_or("ERROR WHEN DISPLAYING THE FILE")
         );
-        ()
     }
 
     let timestamp = fs::metadata(&name).unwrap().created().unwrap();
@@ -124,7 +123,7 @@ fn handle(name: path::PathBuf, dest: &String, codes: &HashMap<String, String>, t
     }
 }
 
-fn make_tables(codes: &HashMap<String, String>, dest: &String) {
+fn make_tables(codes: &HashMap<String, String>, dest: &str) {
     if path::Path::new(&format!("{}{}shortcuts", dest, path::MAIN_SEPARATOR)).exists() {
         fs::remove_file(format!("{}{}shortcuts", dest, path::MAIN_SEPARATOR)).unwrap();
     }
@@ -141,9 +140,7 @@ fn make_tables(codes: &HashMap<String, String>, dest: &String) {
         shortcuts += &format!("\t{} = {}\n", key, value);
     }
 
-    shortcuts_file
-        .write(format!("{}", shortcuts).as_bytes())
-        .unwrap();
+    shortcuts_file.write_all(shortcuts.as_bytes()).unwrap();
     log::debug!("Codes are : \n{}", shortcuts);
 }
 
@@ -229,23 +226,22 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
                     let opened_config_file = fs::File::open(&config_file_s);
 
-                    if opened_config_file.is_err() {
-                        log::warn!(
-                            "Config file `{}` doesn't exist anymore ! Can't use it",
-                            config_file_s
-                        );
-                    } else {
-                        let new_last_change = opened_config_file
-                            .unwrap()
-                            .metadata()
-                            .unwrap()
-                            .modified()
-                            .unwrap();
+                    match opened_config_file {
+                        Ok(file) => {
+                            let new_last_change = file.metadata().unwrap().modified().unwrap();
 
-                        if old_last_change < new_last_change {
-                            config_changed_s.store(true, Ordering::SeqCst);
-                            old_last_change = new_last_change;
-                        };
+                            if old_last_change < new_last_change {
+                                config_changed_s.store(true, Ordering::SeqCst);
+                                old_last_change = new_last_change;
+                            };
+                        }
+
+                        Err(_) => {
+                            log::warn!(
+                                "Config file `{}` doesn't exist anymore ! Can't use it",
+                                config_file_s
+                            );
+                        }
                     }
 
                     if path::Path::new(&format!("{}{}fcs-should_end", dest_s, path::MAIN_SEPARATOR))
@@ -389,14 +385,14 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         }
     }
 
-    if !background_thread.is_none() {
+    if let Some(thread) = background_thread {
         log::trace!("Waiting for my watching child to end");
-        match tx.send(true) {
-            Ok(_) => (),
-            Err(_) => {
-                log::warn!("I am disconnected from my child, but I was ending anyway so...");
+            match tx.send(true) {
+                Ok(_) => (),
+                Err(_) => {
+                    log::warn!("I am disconnected from my child, but I was ending anyway so...");
+                }
             }
-        }
-        background_thread.unwrap().join().unwrap();
+            thread.join().ok();
     }
 }

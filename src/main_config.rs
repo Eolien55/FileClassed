@@ -49,7 +49,7 @@ pub fn clean(config: &mut conf::Config) -> bool {
         .dirs
         .iter()
         .filter(|&dir| conf::test_path!(&dir, "dir"))
-        .map(|dir| String::from(dir))
+        .map(String::from)
         .collect();
 
     let non_existing_dirs = config.dirs.difference(&existing_dirs);
@@ -80,9 +80,9 @@ pub fn clean(config: &mut conf::Config) -> bool {
         .filter(|entry| {
             !vec![".", ".."].contains(&entry.1.as_str())
                 && entry.0.matches('.').count() < 1
-                && entry.0.len() > 0
+                && !entry.0.is_empty()
                 && entry.0.matches('/').count() < 1
-                && entry.1.len() > 0
+                && !entry.1.is_empty()
                 && entry.1.matches('/').count() < 1
         })
         .map(|entry| (entry.0.to_owned(), entry.1.to_owned()))
@@ -114,5 +114,5 @@ pub fn clean(config: &mut conf::Config) -> bool {
 
     log::debug!("Here's the config : {:?}", config);
 
-    return fatal;
+    fatal
 }

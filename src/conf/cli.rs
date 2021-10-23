@@ -23,9 +23,9 @@ pub fn clean_custom(config: &mut lib::Config) -> bool {
         .filter(|entry| {
             !vec![".", ".."].contains(&entry.1.as_str())
                 && entry.0.matches('.').count() < 1
-                && entry.0.len() > 0
+                && !entry.0.is_empty()
                 && entry.0.matches('/').count() < 1
-                && entry.1.len() > 0
+                && !entry.1.is_empty()
                 && entry.1.matches('/').count() < 1
         })
         .map(|entry| (entry.0.to_owned(), entry.1.to_owned()))
@@ -57,7 +57,7 @@ pub fn clean_custom(config: &mut lib::Config) -> bool {
 
     log::debug!("Here's the config : {:?}", config);
 
-    return fatal;
+    fatal
 }
 
 fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error>>
@@ -139,7 +139,7 @@ pub fn get_verbose() -> Option<log::Level> {
     let mut verbose = Cli::from_args().verbose;
     verbose.set_default(Some(log::Level::Warn));
 
-    return verbose.log_level();
+    verbose.log_level()
 }
 
 macro_rules! define_option {
@@ -177,7 +177,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     let args = Cli::from_args();
     let mut declared: lib::DeclaredType = [false, false, false, false, false, false, false, false];
 
-    if !args.completion.is_none() {
+    if args.completion.is_some() {
         match Shell::from_str(&args.completion.unwrap()) {
             Ok(shell) => {
                 let mut app = Cli::clap();
@@ -185,7 +185,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
                 exit(exitcode::OK);
             }
             Err(e) => {
-                log::error!("{}", e.to_string());
+                log::error!("{}", e);
                 exit(exitcode::DATAERR);
             }
         }
@@ -208,7 +208,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     let build_default = get_defaults();
 
     let result: lib::Config;
-    let mut build_result: lib::BuildConfig = build_default.clone();
+    let mut build_result: lib::BuildConfig = build_default;
 
     define_option!(
         args,
@@ -235,7 +235,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     result = convert_types(build_result);
 
     if args.generate_config {
-        let mut result = result.clone();
+        let mut result = result;
 
         match clean_custom(&mut result) {
             true => {
@@ -256,7 +256,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
         };
 
         let deserialized = match serde_yaml::to_string(&yaml_result) {
-            Ok(result) => result,
+            Ok(res) => res,
             Err(e) => {
                 log::error!(
                     "Failed somehow to parse configuration. Error : {}",
@@ -270,7 +270,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
         exit(exitcode::OK);
     }
 
-    return (result, config, declared);
+    (result, config, declared)
 }
 
 fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
@@ -294,7 +294,7 @@ fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
     let timeinfo = build_result.timeinfo;
     let static_mode = build_result.static_mode;
 
-    let result = lib::Config {
+    lib::Config {
         codes,
         dirs,
         dest,
@@ -302,7 +302,5 @@ fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
         once,
         timeinfo,
         static_mode,
-    };
-
-    return result;
+    }
 }

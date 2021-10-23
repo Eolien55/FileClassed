@@ -35,7 +35,7 @@ pub fn get_default() -> lib::Config {
 }
 
 pub fn get_defaults() -> lib::BuildConfig {
-    let default_pre: lib::Config = lib::Config {
+    let default: lib::Config = lib::Config {
         dirs: vec!["~/Scolaire", "~/usb"]
             .iter()
             .map(|x| x.to_string())
@@ -65,10 +65,8 @@ pub fn get_defaults() -> lib::BuildConfig {
         static_mode: false,
     };
 
-    let default = default_pre.clone();
-
     let build_default: lib::BuildConfig = lib::BuildConfig {
-        dirs: Some(default.dirs.iter().map(|x| x.clone()).collect()),
+        dirs: Some(default.dirs.iter().cloned().collect()),
         dest: Some(default.dest),
         sleep: Some(default.sleep),
         codes: Some(
