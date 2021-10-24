@@ -73,7 +73,10 @@ fn get_new_name(
     let mut month_str: String = "".to_string();
 
     if timeinfo {
-        let timestamp = timestamp.unwrap().duration_since(time::UNIX_EPOCH)?.as_secs();
+        let timestamp = timestamp
+            .unwrap()
+            .duration_since(time::UNIX_EPOCH)?
+            .as_secs();
 
         let datetime = Local
             .from_utc_datetime(&NaiveDateTime::from_timestamp(timestamp as i64, 0))
@@ -126,7 +129,7 @@ fn get_new_name(
         lazy_static! {
             static ref BETWEEN_BRACKETS: Regex = Regex::new(r".*\{([^\{\}]+)\}.*").unwrap();
         };
-        
+
         while BETWEEN_BRACKETS.is_match(&current) {
             current = expand(&current, codes);
         }
@@ -153,8 +156,7 @@ fn handle(name: path::PathBuf, dest: &str, codes: &HashMap<String, String>, time
         return;
     }
 
-    let timestamp : Option::<time::SystemTime> = 
-    if timeinfo {
+    let timestamp: Option<time::SystemTime> = if timeinfo {
         Some(fs::metadata(&name).unwrap().created().unwrap())
     } else {
         None
