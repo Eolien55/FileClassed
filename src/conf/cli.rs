@@ -11,54 +11,7 @@ use std::str::FromStr;
 
 use super::defaults::get_build_default;
 use super::lib;
-
-// The bool value indicates if the config is so messed
-// up that it is unusable, and if the program should exit
-pub fn clean_custom(config: &mut lib::Config) -> bool {
-    let mut fatal = false;
-
-    let valid_codes: HashMap<String, String> = config
-        .codes
-        .iter()
-        .filter(|entry| {
-            !vec![".", ".."].contains(&entry.1.as_str())
-                && entry.0.matches('.').count() < 1
-                && !entry.0.is_empty()
-                && entry.0.matches('/').count() < 1
-                && !entry.1.is_empty()
-                && entry.1.matches('/').count() < 1
-        })
-        .map(|entry| (entry.0.to_owned(), entry.1.to_owned()))
-        .collect();
-
-    let valid_codes_keys: HashSet<String> =
-        valid_codes.iter().map(|entry| entry.0.to_owned()).collect();
-    let codes_keys: HashSet<String> = config
-        .codes
-        .iter()
-        .map(|entry| entry.0.to_owned())
-        .collect();
-
-    let invalid_codes_keys = codes_keys.difference(&valid_codes_keys);
-
-    for key in invalid_codes_keys {
-        log::warn!(
-            "Shortcut `{}={}` isn't valid ! Not using it",
-            key,
-            config.codes[key]
-        );
-    }
-    config.codes = valid_codes;
-
-    if config.codes.is_empty() {
-        log::error!("No shortcut set up, or none of them are valid ! Exiting");
-        fatal = true;
-    }
-
-    log::debug!("Here's the config : {:?}", config);
-
-    fatal
-}
+use super::super::main_config::clean as clean_custom;
 
 fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error>>
 where
