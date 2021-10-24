@@ -25,13 +25,6 @@ pub struct BuildConfig {
 }
 
 pub type DeclaredType = [bool; 8];
-pub type NormalCode = HashMap<String, String>;
-pub type MapCode = HashMap<String, CodesType>;
-
-pub enum CodesType {
-    NormalCode(NormalCode),
-    MapCode(MapCode)
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigSerDe {

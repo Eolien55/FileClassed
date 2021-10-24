@@ -9,7 +9,7 @@ use std::path;
 use std::process::exit;
 use std::str::FromStr;
 
-use super::defaults::get_defaults;
+use super::defaults::get_build_default;
 use super::lib;
 
 // The bool value indicates if the config is so messed
@@ -205,7 +205,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
         ),
     };
 
-    let build_default = get_defaults();
+    let build_default = get_build_default();
 
     let result: lib::Config;
     let mut build_result: lib::BuildConfig = build_default;
