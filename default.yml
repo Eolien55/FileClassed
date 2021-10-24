@@ -3,10 +3,12 @@ dest: ~/Scolaire
 dirs:
   - ~/Scolaire
   - ~/usb
+
 once: false
 timeinfo: false
 static_mode: false
 sleep: 1000
+
 codes:
   hg: Histoire-Géographie
   ses: Sciences Économiques et Sociales

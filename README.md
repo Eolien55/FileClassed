@@ -8,17 +8,43 @@ Feel free to open pull requests or issues.
 
 The way this program organizes files could be conflicting with some normal software behaviour. Note that this doesn't keep references between files ; LaTeX code with inclusion of other files could thus need to be a little changed. FileClassed should only be used for non-IT classification. Since codes can be very easily changed, this program can be applied to a variety of domains.
 
-This program takes care of the creation date of this file. This does it this way :
-`<YEAR>/<MEANING>/<MONTH>/<NAME>`.
+Through the following document, the word shortcuts will be used several times. It isn't very clear, so I prefer explain here. The program is configured with "shortcuts", which is a pair Short string / Meaning of the string.
 
-A file that was created on September 2021 named `mt.Assignments.euler.pdf` would be move by the program to `Mathematics/Assignments/euler.pdf`. mt means Mathematics, when time info is disabled. Otherwise, it would be `2021/Mathematics/Assignments/September/euler.pdf`.
+For exmple, `fr / Français` is a shortcut ; everytime the string `fr` is encountered alone, it will be expanded into `Français`.
 
-A file named `mt.hst.euler.pdf` would be moved to `Mathematics/History/euler.pdf`. hst means History, as you guessed.
+### Basic
 
-Note that "meanings" can easily and fully be configured. What I just said isn't the absolute truth since shortcuts are in the defaults written in french, including months.
+Here's a first example of the behavior of this organizer.
 
-It is primarily intended to class scolar works, that's why it uses years and months.
-Note that months and years are optional, since v1.1.1.
+<img src="https://raw.github.com/Eolien55/FileClassed/schema-base.svg">
+
+Here, the program expands each part seperated by commas. `mt` is expanded to `Mathematics`, and `asg` to `Assignments`. The last two parts are never expanded : they constitute the file name.
+
+Note that the way the parts are expanded can be configured, via the `-c` option when running FileClassed or the `codes` field in the configuration file.
+
+### No expanding
+
+Here's a second example of the program's behavior.
+
+<img src="https://raw.github.com/Eolien55/FileClassed/schema-multiple.svg">
+
+Here, we suppose that the program is configured to expand `emp` into `Empire` and `hst` into `History`. We also suppose that `France` isn't a registered shortcut.
+
+This is almost the same case as in the first example, but this time, a part isn't expanded. `France` keeps being `France` in the final path since it's not configured as a shortcut.
+
+When the program cannot expand a shortcut, it uses it plain.
+
+### Variable replacement
+
+In this example, we'll show how include shortcuts inside plain strings, or even combine shortcuts.
+
+<img src="https://raw.github.com/Eolien55/FileClassed/schema-varuable-replacement.svg">
+
+We suppose that `fr` means `French`, that `hst` means `History` and that `emp` means `Empire`.
+
+Here the program tries to expand `fr` then `hst`. It succeeds, and replace `<fr>` by `Français` and `<hst>` by `History`. Like in the previous example, if FileClassed fails to expand a part, it replaces it plain. So `<France>` would be replaced by `France`, but this isn't useful, at all.
+
+Note that it expands those variables recursively. Say, hypothetically, that we configured `1` as `one` and `fone` as `Fossil number One`. The file name `<f<1>>.image.jpg` would be expanded to `<fone>.image.jpg` and then `Fossil number One/image.jpeg`.
 
 ## Installing
 
@@ -32,9 +58,17 @@ Then, you should have a new program named fcs that works as stated before.
 
 ## Configuring
 
-See `fcs --help` and default.yml in the repo. For generating a config file, you can add `-g` flag at the very end of the command.
-You can easily configure this program, by creating the according configuration file. In Windows, this would be `C:\Users\<User>\AppData\Roaming\fcs\init.yml`. This would be `/home/<user>/.config/fcs/init.yml` on Linux or BSD. Note that there is no such thing as a system-wide configuration file, for portability reasons (MacOS and Windows people couldn't use it). Note finally that editing the configuration file is a lot of pain on MacOS and Windows because of the ugly paths, so you may want to create a link to it in your home directory.
+Note that you can generate a config file by adding the `-g` flag at the end of the call to `fcs`.
 
-Note that FileClassed updates automatically when config file changes, except if you use the `-S` flag or set the `static_mode` field  to `true` in the config file.
+The configuration file is located to `C:\Users\<User>\AppData\Roaming\fcs\init.yml` in Windows, `/home/<user>/.config/fcs/init.yml` for Linux and BSD operation systems, and `/Users/<User>/Library/Application Support` for MacOS.
 
-This program is free software (as stated in LICENSE), and published under the GPLv3 license.
+There are multiple fields, and (almost) each of them corresponds to an option or a flag of this program.
+Refer to `fcs --help` for more information about each of the options.
+
+The `dirs` field / CLI option sets which directories to look for files to organize.
+
+The `dest` field / CLI option sets which directory to move the files, once expanded.
+
+The `once` field / CLI flag makes the program organize the files only once. By default, it organizes them, then sleep and organizes them again.
+
+This program is free software (as stated in LICENSE), and published under the MIT license.

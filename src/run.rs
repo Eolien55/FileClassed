@@ -1,6 +1,8 @@
 use chrono::{offset::TimeZone, Local, NaiveDateTime};
 use locale::Time;
 use scan_dir::ScanDir;
+use lazy_static::lazy_static;
+use regex::Regex;
 
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -18,6 +20,60 @@ use crate::conf::file::get_config;
 use crate::conf::lib;
 use crate::conf::lib::{Config, DeclaredType};
 use crate::main_config::clean;
+
+
+macro_rules! decode {
+    ($code:expr, $codes:expr) => {
+        $codes.get($code).unwrap_or($code)
+    };
+}
+
+fn expand(input : &str, codes : &HashMap<String, String>) -> String {
+    let mut result = String::with_capacity(input.len());
+    if let Some(idx) = input.find('<') {
+        let mut input_str = input;
+        let mut next_seq_beg = idx;
+
+        loop {
+            result.push_str(&input_str[..next_seq_beg]);
+
+            input_str = &input_str[next_seq_beg..];
+            if input_str.is_empty() {
+                break;
+            }
+            input_str = &input_str[1..];
+
+            if let Some(next_seq_end) = input_str.find('>') {
+                let code = &input_str[..next_seq_end];
+                result.push_str(decode!(&code.to_string(), &codes));
+            }
+            
+            next_seq_beg = match input_str.find('>') {
+                Some(res) => res + 1,
+                None => input_str.len()
+            };
+
+            input_str = &input_str[next_seq_beg..];
+            next_seq_beg = input_str.find('<').unwrap_or(input_str.len());
+        }
+    } else {
+        result.push_str(input);
+    }
+
+    result
+}
+
+#[test]
+fn test_expand() {
+    let codes = [("fr", "Français"), ("cnt", "Century")]
+    .iter()
+    .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
+    .collect();
+
+    assert_eq!(expand("18th <cnt> AC", &codes), "18th Century AC");
+    assert_eq!(expand("<fr>", &codes), "Français");
+    assert_eq!(expand("18th <cNt>", &codes), "18th cNt");
+}
 
 fn get_new_name(
     name: &path::Path,
@@ -75,17 +131,21 @@ fn get_new_name(
     while next.matches('.').count() > 1 {
         splitted = next.split_at(next.find('.').unwrap() + 1);
         let current = splitted.0;
-        let current: &str = &current
+        let mut current: String = current
             .chars()
             .take(current.chars().count() - 1)
             .collect::<String>();
         next = splitted.1;
 
-        if codes.contains_key(current) {
-            ending_path.push(&codes[current]);
-        } else {
-            ending_path.push(current);
+        lazy_static!(
+            static ref WHOLE_INSIDE_LESS_GREAT : Regex = Regex::new(r".*<([^<>]+)>.*").unwrap();
+        );
+
+        while WHOLE_INSIDE_LESS_GREAT.is_match(&current) {
+            current = expand(&current, codes);
         }
+
+        ending_path.push(decode!(&current, codes));
     }
 
     if timeinfo {
@@ -281,9 +341,9 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                 .walk(dir, |iter| {
                     iter.filter(|&(_, ref name)| {
                         name.matches('.').count() > 1
-                            && my_config.codes.contains_key::<String>(
+                            /*&& my_config.codes.contains_key::<String>(
                                 &name.chars().take(name.find('.').unwrap()).collect(),
-                            )
+                            )*/
                     })
                     .map(|(entry, _)| entry)
                     .collect()
