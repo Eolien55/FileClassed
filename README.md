@@ -16,7 +16,7 @@ For exmple, `fr / Français` is a shortcut ; everytime the string `fr` is encoun
 
 Here's a first example of the behavior of this organizer.
 
-<img src="https://raw.github.com/Eolien55/FileClassed/master/schema-base.svg">
+<img src="https://raw.githubusercontent.com/Eolien55/FileClassed/master/schema-basic.svg">
 
 Here, the program expands each part seperated by commas. `mt` is expanded to `Mathematics`, and `asg` to `Assignments`. The last two parts are never expanded : they constitute the file name.
 
@@ -26,7 +26,7 @@ Note that the way the parts are expanded can be configured, via the `-c` option 
 
 Here's a second example of the program's behavior.
 
-<img src="https://raw.github.com/Eolien55/FileClassed/master/schema-multiple.svg">
+<img src="https://raw.githubusercontent.com/Eolien55/FileClassed/master/schema-multiple.svg">
 
 Here, we suppose that the program is configured to expand `emp` into `Empire` and `hst` into `History`. We also suppose that `France` isn't a registered shortcut.
 
@@ -38,7 +38,7 @@ When the program cannot expand a shortcut, it uses it plain.
 
 In this example, we'll show how include shortcuts inside plain strings, or even combine shortcuts.
 
-<img src="https://raw.github.com/Eolien55/FileClassed/master/schema-varuable-replacement.svg">
+<img src="https://raw.githubusercontent.com/Eolien55/FileClassed/master/schema-variable-replacement.svg">
 
 We suppose that `fr` means `French`, that `hst` means `History` and that `emp` means `Empire`.
 
