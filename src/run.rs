@@ -124,9 +124,9 @@ fn get_new_name(
         next = splitted.1;
 
         lazy_static! {
-            static ref BETWEEN_BRACKETS: Regex = Regex::new(r".*\{([^{}]+)\}.*").unwrap();
+            static ref BETWEEN_BRACKETS: Regex = Regex::new(r".*\{([^\{\}]+)\}.*").unwrap();
         };
-
+        
         while BETWEEN_BRACKETS.is_match(&current) {
             current = expand(&current, codes);
         }
@@ -150,6 +150,7 @@ fn handle(name: path::PathBuf, dest: &str, codes: &HashMap<String, String>, time
             "File `{}` disappeared before I could handle it !",
             name.to_str().unwrap_or("ERROR WHEN DISPLAYING THE FILE")
         );
+        return;
     }
 
     let timestamp = fs::metadata(&name).unwrap().created().unwrap();
