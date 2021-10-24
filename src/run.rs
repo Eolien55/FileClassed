@@ -65,7 +65,7 @@ fn get_new_name(
     name: &path::Path,
     dest: &str,
     codes: &HashMap<String, String>,
-    timestamp: time::SystemTime,
+    timestamp: Option<time::SystemTime>,
     timeinfo: bool,
 ) -> Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
     let mut year: String = "".to_string();
@@ -73,7 +73,7 @@ fn get_new_name(
     let mut month_str: String = "".to_string();
 
     if timeinfo {
-        let timestamp = timestamp.duration_since(time::UNIX_EPOCH)?.as_secs();
+        let timestamp = timestamp.unwrap().duration_since(time::UNIX_EPOCH)?.as_secs();
 
         let datetime = Local
             .from_utc_datetime(&NaiveDateTime::from_timestamp(timestamp as i64, 0))
@@ -144,7 +144,7 @@ fn get_new_name(
     Ok((ending_path, dir))
 }
 
-fn handle(name: path::PathBuf, dest: &str, codes: &HashMap<String, String>, timeinfo: &bool) {
+fn handle(name: path::PathBuf, dest: &str, codes: &HashMap<String, String>, timeinfo: bool) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
         log::warn!(
             "File `{}` disappeared before I could handle it !",
@@ -153,9 +153,14 @@ fn handle(name: path::PathBuf, dest: &str, codes: &HashMap<String, String>, time
         return;
     }
 
-    let timestamp = fs::metadata(&name).unwrap().created().unwrap();
+    let timestamp : Option::<time::SystemTime> = 
+    if timeinfo {
+        Some(fs::metadata(&name).unwrap().created().unwrap())
+    } else {
+        None
+    };
 
-    match get_new_name(&name, dest, codes, timestamp, *timeinfo) {
+    match get_new_name(&name, dest, codes, timestamp, timeinfo) {
         Ok(result) => match fs::create_dir_all(&result.1) {
             Ok(_) => match fs::rename(&name, &result.0) {
                 Ok(_) => log::info!("Moved path from {:?} to {:?}", name, result.0),
@@ -358,7 +363,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                     current_path,
                     &my_config.dest,
                     &my_config.codes,
-                    &my_config.timeinfo,
+                    my_config.timeinfo,
                 );
             }
 
