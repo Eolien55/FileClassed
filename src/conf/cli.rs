@@ -9,9 +9,9 @@ use std::path;
 use std::process::exit;
 use std::str::FromStr;
 
+use super::super::main_config::clean as clean_custom;
 use super::defaults::get_build_default;
 use super::lib;
-use super::super::main_config::clean as clean_custom;
 
 fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error>>
 where

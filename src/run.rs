@@ -45,7 +45,7 @@ fn expand(input : &str, codes : &HashMap<String, String>) -> String {
 
             if let Some(next_seq_end) = input_str.find('>') {
                 let code = &input_str[..next_seq_end];
-                result.push_str(decode!(&code.to_string(), &codes));
+                result.push_str(decode!(&code.to_string(), codes));
             }
             
             next_seq_beg = match input_str.find('>') {
@@ -66,9 +66,9 @@ fn expand(input : &str, codes : &HashMap<String, String>) -> String {
 #[test]
 fn test_expand() {
     let codes = [("fr", "Français"), ("cnt", "Century")]
-    .iter()
-    .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
-    .collect();
+        .iter()
+        .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
+        .collect();
 
     assert_eq!(expand("18th <cnt> AC", &codes), "18th Century AC");
     assert_eq!(expand("<fr>", &codes), "Français");
@@ -341,9 +341,6 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                 .walk(dir, |iter| {
                     iter.filter(|&(_, ref name)| {
                         name.matches('.').count() > 1
-                            /*&& my_config.codes.contains_key::<String>(
-                                &name.chars().take(name.find('.').unwrap()).collect(),
-                            )*/
                     })
                     .map(|(entry, _)| entry)
                     .collect()
