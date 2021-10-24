@@ -1,8 +1,7 @@
 ---
-dest: ~/Scolaire
+dest: ~/Documents
 dirs:
-  - ~/Scolaire
-  - ~/usb
+  - ~/Documents-source
 
 once: false
 timeinfo: false
@@ -10,16 +9,16 @@ static_mode: false
 sleep: 1000
 
 codes:
-  hg: Histoire-Géographie
-  ses: Sciences Économiques et Sociales
-  info: Informatique
-  en: Anglais
-  chin: Chinois
-  mt: Mathématiques
-  svt: SVT
-  eps: EPS
-  pc: Physique-Chimie
+  hst: History
+  cnt: Century
+  cs: Computer Science
+  en: English
+  chin: Chinese
+  mt: Mathematics
+  sp: Sports
+  phy: Physics
+  ch: Chemestry
   glb: Global
-  vdc: Vie de Classe
-  gr: Grec
-  fr: Français
+  gr: Greek
+  fr: French
+  asg: Assignments

@@ -1,0 +1,49 @@
+config file :
+---
+dest: ~/Documents
+dirs:
+  - ~/Documents-source
+
+once: false
+timeinfo: false
+static_mode: false
+sleep: 1000
+
+codes:
+  hst: History
+  cnt: Century
+  cs: Computer Science
+  en: English
+  chin: Chinese
+  mt: Mathematics
+  sp: Sports
+  phy: Physics
+  ch: Chemestry
+  glb: Global
+  gr: Greek
+  fr: French
+  asg: Assignments
+
+
+
+Before :
+~/Documents-source/hst/<fr> <hst>.18th <cnt>.Consulate.pdf
+
+~/Documents-source/Computer/cs.algorithms and data structures.dvi
+
+~/Documents-source/very/deep/meaning/gr.statues weren't white.mp4
+
+~/Documents-source/such/nested/asg.mt.integration.tex
+
+~/Documents-source/chin.Great Wall.odt
+
+After :
+~/Documents/French History/18th Century/Consulate.pdf
+
+~/Documents/Computer Science/algorithms and data structures.dvi
+
+~/Documents/Greek/statues weren't white.mp4
+
+~/Documents/Assignments/Mathematics/integration.tex
+
+~/Documents/Chinese/Great Wall.odt

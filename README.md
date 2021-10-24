@@ -4,6 +4,9 @@ Efficient, lightweight, configurable file organizer. This project is very simple
 
 Feel free to open pull requests or issues.
 
+## Example
+See `before-after.txt`.
+
 ## How it works
 
 The way this program organizes files could be conflicting with some normal software behaviour. Note that this doesn't keep references between files ; LaTeX code with inclusion of other files could thus need to be a little changed. FileClassed should only be used for non-IT classification. Since codes can be very easily changed, this program can be applied to a variety of domains.
