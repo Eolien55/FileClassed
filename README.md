@@ -67,13 +67,15 @@ Refer to `fcs --help` for more information about each of the options.
 
 The `dirs` field / CLI option sets which directories to look for files to organize.
 
-The `dest` field / CLI option sets which directory to move the files, once expanded.
+The `dest` field / CLI option sets which directory to move the files, once expanded. All organized files are moved to it.
 
 The `once` field / CLI flag makes the program organize the files only once. By default, it organizes them, then sleep and organizes them again.
 
 The `sleep` field / CLI option sets the sleep time between each loop, in milliseconds.
 
 The `static_mode` field / CLI flag disables the program looking for configuration changes.
+
+The `timeinfo` field / CLI flag enables file info in the path. With `mt / Mathematics`, the file `mt.exponentiation.txt` wouldn't be expanded to `Mathematics/exponentiation.txt` but to `<year>/Mathematics/<month>/exponentiation.txt`.
 
 The `codes` field / CLI option sets the "shortcuts".
 
