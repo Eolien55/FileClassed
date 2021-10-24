@@ -47,9 +47,9 @@ In this example, we'll show how include shortcuts inside plain strings, or even 
 
 We suppose that `fr` means `French`, that `hst` means `History` and that `emp` means `Empire`.
 
-Here the program tries to expand `fr` then `hst`. It succeeds, and replace `<fr>` by `Français` and `<hst>` by `History`. Like in the previous example, if FileClassed fails to expand a part, it replaces it plain. So `<France>` would be replaced by `France`, but this isn't useful, at all.
+Here the program tries to expand `fr` then `hst`. It succeeds, and replace `{fr}` by `Français` and `{hst}` by `History`. Like in the previous example, if FileClassed fails to expand a part, it replaces it plain. So `{France}` would be replaced by `France`, but this isn't useful, at all.
 
-Note that it expands those variables recursively. Say, hypothetically, that we configured `1` as `one` and `fone` as `Fossil number One`. The file name `<f<1>>.image.jpg` would be expanded to `<fone>.image.jpg` and then `Fossil number One/image.jpeg`.
+Note that it expands those variables recursively. Say, hypothetically, that we configured `1` as `one` and `fone` as `Fossil number One`. The file name `{f{1}}.image.jpg` would be expanded to `{fone}.image.jpg` and then `Fossil number One/image.jpeg`.
 
 ## Installing
 

@@ -4,3 +4,4 @@ pub mod main_config;
 pub mod conf;
 
 pub mod run;
+pub mod test;

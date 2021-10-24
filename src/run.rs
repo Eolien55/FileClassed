@@ -1,8 +1,8 @@
 use chrono::{offset::TimeZone, Local, NaiveDateTime};
-use locale::Time;
-use scan_dir::ScanDir;
 use lazy_static::lazy_static;
+use locale::Time;
 use regex::Regex;
+use scan_dir::ScanDir;
 
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -21,16 +21,15 @@ use crate::conf::lib;
 use crate::conf::lib::{Config, DeclaredType};
 use crate::main_config::clean;
 
-
 macro_rules! decode {
     ($code:expr, $codes:expr) => {
         $codes.get($code).unwrap_or($code)
     };
 }
 
-fn expand(input : &str, codes : &HashMap<String, String>) -> String {
+pub fn expand(input: &str, codes: &HashMap<String, String>) -> String {
     let mut result = String::with_capacity(input.len());
-    if let Some(idx) = input.find('<') {
+    if let Some(idx) = input.find('{') {
         let mut input_str = input;
         let mut next_seq_beg = idx;
 
@@ -43,36 +42,23 @@ fn expand(input : &str, codes : &HashMap<String, String>) -> String {
             }
             input_str = &input_str[1..];
 
-            if let Some(next_seq_end) = input_str.find('>') {
-                let code = &input_str[..next_seq_end];
-                result.push_str(decode!(&code.to_string(), codes));
-            }
-            
-            next_seq_beg = match input_str.find('>') {
-                Some(res) => res + 1,
-                None => input_str.len()
+            next_seq_beg = match input_str.find('}') {
+                Some(res) => {
+                    let code = &input_str[..res];
+                    result.push_str(decode!(&code.to_string(), codes));
+                    res + 1
+                }
+                None => next_seq_beg,
             };
 
             input_str = &input_str[next_seq_beg..];
-            next_seq_beg = input_str.find('<').unwrap_or(input_str.len());
+            next_seq_beg = input_str.find('{').unwrap_or(input_str.len());
         }
     } else {
         result.push_str(input);
     }
 
     result
-}
-
-#[test]
-fn test_expand() {
-    let codes = [("fr", "Français"), ("cnt", "Century")]
-        .iter()
-        .map(|tuple| (tuple.0.to_string(), tuple.1.to_string()))
-        .collect();
-
-    assert_eq!(expand("18th <cnt> AC", &codes), "18th Century AC");
-    assert_eq!(expand("<fr>", &codes), "Français");
-    assert_eq!(expand("18th <cNt>", &codes), "18th cNt");
 }
 
 fn get_new_name(
@@ -137,11 +123,11 @@ fn get_new_name(
             .collect::<String>();
         next = splitted.1;
 
-        lazy_static!(
-            static ref WHOLE_INSIDE_LESS_GREAT : Regex = Regex::new(r".*<([^<>]+)>.*").unwrap();
-        );
+        lazy_static! {
+            static ref BETWEEN_BRACKETS: Regex = Regex::new(r".*\{([^{}]+)\}.*").unwrap();
+        };
 
-        while WHOLE_INSIDE_LESS_GREAT.is_match(&current) {
+        while BETWEEN_BRACKETS.is_match(&current) {
             current = expand(&current, codes);
         }
 
@@ -339,11 +325,9 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
             let files: Vec<fs::DirEntry> = ScanDir::files()
                 .walk(dir, |iter| {
-                    iter.filter(|&(_, ref name)| {
-                        name.matches('.').count() > 1
-                    })
-                    .map(|(entry, _)| entry)
-                    .collect()
+                    iter.filter(|&(_, ref name)| name.matches('.').count() > 1)
+                        .map(|(entry, _)| entry)
+                        .collect()
                 })
                 .unwrap();
 
@@ -444,12 +428,12 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
     if let Some(thread) = background_thread {
         log::trace!("Waiting for my watching child to end");
-            match tx.send(true) {
-                Ok(_) => (),
-                Err(_) => {
-                    log::warn!("I am disconnected from my child, but I was ending anyway so...");
-                }
+        match tx.send(true) {
+            Ok(_) => (),
+            Err(_) => {
+                log::warn!("I am disconnected from my child, but I was ending anyway so...");
             }
-            thread.join().ok();
+        }
+        thread.join().ok();
     }
 }
