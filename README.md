@@ -16,7 +16,7 @@ For exmple, `fr / Français` is a shortcut ; everytime the string `fr` is encoun
 
 Here's a first example of the behavior of this organizer.
 
-<img src="https://raw.github.com/Eolien55/FileClassed/schema-base.svg">
+<img src="https://raw.github.com/Eolien55/FileClassed/master/schema-base.svg">
 
 Here, the program expands each part seperated by commas. `mt` is expanded to `Mathematics`, and `asg` to `Assignments`. The last two parts are never expanded : they constitute the file name.
 
@@ -26,7 +26,7 @@ Note that the way the parts are expanded can be configured, via the `-c` option 
 
 Here's a second example of the program's behavior.
 
-<img src="https://raw.github.com/Eolien55/FileClassed/schema-multiple.svg">
+<img src="https://raw.github.com/Eolien55/FileClassed/master/schema-multiple.svg">
 
 Here, we suppose that the program is configured to expand `emp` into `Empire` and `hst` into `History`. We also suppose that `France` isn't a registered shortcut.
 
@@ -38,7 +38,7 @@ When the program cannot expand a shortcut, it uses it plain.
 
 In this example, we'll show how include shortcuts inside plain strings, or even combine shortcuts.
 
-<img src="https://raw.github.com/Eolien55/FileClassed/schema-varuable-replacement.svg">
+<img src="https://raw.github.com/Eolien55/FileClassed/master/schema-varuable-replacement.svg">
 
 We suppose that `fr` means `French`, that `hst` means `History` and that `emp` means `Empire`.
 
@@ -58,7 +58,7 @@ Then, you should have a new program named fcs that works as stated before.
 
 ## Configuring
 
-Note that you can generate a config file by adding the `-g` flag at the end of the call to `fcs`.
+Note that you can generate a config file by running fcs with the `-g` flag.
 
 The configuration file is located to `C:\Users\<User>\AppData\Roaming\fcs\init.yml` in Windows, `/home/<user>/.config/fcs/init.yml` for Linux and BSD operation systems, and `/Users/<User>/Library/Application Support` for MacOS.
 
@@ -70,5 +70,15 @@ The `dirs` field / CLI option sets which directories to look for files to organi
 The `dest` field / CLI option sets which directory to move the files, once expanded.
 
 The `once` field / CLI flag makes the program organize the files only once. By default, it organizes them, then sleep and organizes them again.
+
+The `sleep` field / CLI option sets the sleep time between each loop, in milliseconds.
+
+The `static_mode` field / CLI flag disables the program looking for configuration changes.
+
+The `codes` field / CLI option sets the "shortcuts".
+
+The `completion` CLI option generates shell specific completion script and print it to stdout.
+
+Note that the default values are in french, so you really should write your configuration file.
 
 This program is free software (as stated in LICENSE), and published under the MIT license.
