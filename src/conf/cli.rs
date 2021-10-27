@@ -7,7 +7,6 @@ use std::error::Error;
 use std::io;
 use std::path;
 use std::process::exit;
-use std::str::FromStr;
 
 use super::super::main_config::clean as clean_custom;
 use super::defaults::get_build_default;
@@ -74,7 +73,7 @@ struct Cli {
 
     /// Generates completion script for specified shell and writing it on stdout
     #[structopt(long, value_name = "shell")]
-    completion: Option<String>,
+    completion: Option<Shell>,
 
     /// Runs in static mode, ie not reloading configuration file on changes
     #[structopt(short = "-S", long = "--static")]
@@ -130,23 +129,14 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
     let args = Cli::from_args();
     let mut declared: lib::DeclaredType = [false, false, false, false, false, false, false, false];
 
-    if args.completion.is_some() {
-        match Shell::from_str(&args.completion.unwrap()) {
-            Ok(shell) => {
-                let mut app = Cli::clap();
-                app.gen_completions_to("fcs", shell, &mut io::stdout());
-                exit(exitcode::OK);
-            }
-            Err(e) => {
-                log::error!("{}", e);
-                exit(exitcode::DATAERR);
-            }
-        }
+    if let Some(shell) = args.completion {
+        let mut app = Cli::clap();
+        app.gen_completions_to("fcs", shell, &mut io::stdout());
+        exit(exitcode::OK);
+
     }
 
-    let config: String;
-
-    config = match args.config {
+    let config : String = match args.config {
         Some(file) => {
             declared[lib::which_declared!("config")] = true;
             file
