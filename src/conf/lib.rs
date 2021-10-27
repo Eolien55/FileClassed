@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -8,8 +9,8 @@ pub struct Config {
     pub sleep: usize,
     pub timeinfo: bool,
     pub static_mode: bool,
-    pub dest: String,
-    pub dirs: HashSet<String>,
+    pub dest: PathBuf,
+    pub dirs: HashSet<PathBuf>,
     pub codes: HashMap<String, String>,
 }
 
@@ -19,8 +20,8 @@ pub struct BuildConfig {
     pub sleep: Option<usize>,
     pub timeinfo: bool,
     pub static_mode: bool,
-    pub dirs: Option<Vec<String>>,
-    pub dest: Option<String>,
+    pub dirs: Option<Vec<PathBuf>>,
+    pub dest: Option<PathBuf>,
     pub codes: Option<Vec<(String, String)>>,
 }
 
@@ -33,8 +34,8 @@ pub struct ConfigSerDe {
     pub static_mode: Option<bool>,
     pub sleep: Option<usize>,
     pub codes: Option<HashMap<String, String>>,
-    pub dest: Option<String>,
-    pub dirs: Option<HashSet<String>>,
+    pub dest: Option<PathBuf>,
+    pub dirs: Option<HashSet<PathBuf>>,
 }
 
 macro_rules! test_path {

@@ -1,14 +1,14 @@
 use super::lib;
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::collections::{HashMap, HashSet};
 
 pub fn get_default() -> lib::Config {
     let default: lib::Config = lib::Config {
-        dirs: vec![].iter().map(|x: &&str| x.to_string()).collect(),
-        dest: "".to_string(),
+        dirs: HashSet::new(),
+        dest: PathBuf::from_str("").unwrap(),
         sleep: 1000,
-        codes: []
-            .iter()
-            .map(|tuple: &(&str, &str)| (tuple.0.to_string(), tuple.1.to_string()))
-            .collect(),
+        codes: HashMap::new(),
         timeinfo: false,
         once: false,
         static_mode: false,
@@ -25,11 +25,7 @@ pub fn get_build_default() -> lib::BuildConfig {
         dest: Some(default.dest),
         sleep: Some(default.sleep),
         codes: Some(
-            default
-                .codes
-                .iter()
-                .map(|x| (x.0.clone(), x.1.clone()))
-                .collect(),
+            default.codes.iter().map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned())).collect()
         ),
         timeinfo: default.timeinfo,
         once: default.once,

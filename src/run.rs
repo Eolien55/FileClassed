@@ -64,7 +64,7 @@ pub fn expand(input: &str, codes: &HashMap<String, String>) -> String {
 
 pub fn get_new_name(
     name: &path::Path,
-    dest: &str,
+    dest: &path::Path,
     codes: &HashMap<String, String>,
     timestamp: Option<time::SystemTime>,
     timeinfo: bool,
@@ -148,7 +148,7 @@ pub fn get_new_name(
     Ok((ending_path, dir))
 }
 
-fn handle(name: path::PathBuf, dest: &str, codes: &HashMap<String, String>, timeinfo: bool) {
+fn handle(name: path::PathBuf, dest: &path::Path, codes: &HashMap<String, String>, timeinfo: bool) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
         log::warn!(
             "File `{}` disappeared before I could handle it !",
@@ -201,7 +201,7 @@ fn make_tables(codes: &HashMap<String, String>, dest: &str) {
 
 pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: String) {
     log::trace!("Creating tables");
-    make_tables(&my_config.codes, &my_config.dest);
+    make_tables(&my_config.codes, my_config.dest.to_str().unwrap());
 
     // Note : the <variable>_s is to read : "shared <variable>"
     let should_end = Arc::new(AtomicBool::new(false));
@@ -222,7 +222,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
         if !lib::test_path!(&my_config.dest, "dir") {
             log::error!(
-                "Destination `{}` doesn't exist anymore ! Exiting !",
+                "Destination `{:#?}` doesn't exist anymore ! Exiting !",
                 my_config.dest
             );
             return Err(());
@@ -318,13 +318,13 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                         }
                     }
 
-                    if path::Path::new(&format!("{}{}fcs-should_end", dest_s, path::MAIN_SEPARATOR))
+                    if path::Path::new(&format!("{}{}fcs-should_end", dest_s.to_str().unwrap(), path::MAIN_SEPARATOR))
                         .exists()
                     {
                         should_end_s_s.store(true, Ordering::SeqCst);
                         fs::remove_file(&format!(
                             "{}{}fcs-should_end",
-                            dest_s,
+                            dest_s.to_str().unwrap(),
                             path::MAIN_SEPARATOR
                         ))
                         .unwrap();
@@ -361,7 +361,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
             if !lib::test_path!(&my_config.dest, "dir") {
                 log::error!(
-                    "Destination `{}` doesn't exist anymore ! Exiting !",
+                    "Destination `{:#?}` doesn't exist anymore ! Exiting !",
                     my_config.dest
                 );
                 break 'outer;
@@ -401,7 +401,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                     should_end.store(true, Ordering::SeqCst);
                 }
 
-                make_tables(&my_config.codes, &my_config.dest);
+                make_tables(&my_config.codes, my_config.dest.to_str().unwrap());
             }
 
             match tx.send(false) {
@@ -417,7 +417,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
             }
         }
 
-        let non_existing_dirs: HashSet<String> = my_config
+        let non_existing_dirs: HashSet<path::PathBuf> = my_config
             .dirs
             .iter()
             .filter(|dir| !lib::test_path!(&dir, "dir"))
@@ -425,7 +425,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
             .collect();
         for dir in &non_existing_dirs {
             log::warn!(
-                "Watching directory `{}` doesn't exist anymore ! Not using it",
+                "Watching directory `{:#?}` doesn't exist anymore ! Not using it",
                 dir
             );
         }
@@ -442,7 +442,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
         if !lib::test_path!(&my_config.dest, "dir") {
             log::error!(
-                "Destination `{}` doesn't exist anymore ! Exiting !",
+                "Destination `{:#?}` doesn't exist anymore ! Exiting !",
                 my_config.dest
             );
             break 'outer;

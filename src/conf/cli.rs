@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::io;
 use std::path;
+use path::PathBuf;
 use std::process::exit;
 
 use super::super::main_config::clean as clean_custom;
@@ -36,15 +37,15 @@ where
 struct Cli {
     /// Sets the configurationg file
     #[structopt(short = "-C", long, value_name = "file")]
-    config: Option<String>,
+    config: Option<PathBuf>,
 
     /// Overrides the watching directories
     #[structopt(short, long = "dir", value_name = "directory")]
-    dirs: Option<Vec<String>>,
+    dirs: Option<Vec<PathBuf>>,
 
     /// Overrides destination directory
     #[structopt(short = "-D", long, value_name = "directory")]
-    dest: Option<String>,
+    dest: Option<PathBuf>,
 
     /// Makes the program loop only once
     #[structopt(short, long)]
@@ -136,16 +137,16 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
 
     }
 
-    let config : String = match args.config {
+    let config = match args.config {
         Some(file) => {
             declared[lib::which_declared!("config")] = true;
             file
         }
-        None => format!(
+        None => PathBuf::from(format!(
             "{}{}fcs.yml",
             config_dir().unwrap().to_str().unwrap(),
             path::MAIN_SEPARATOR,
-        ),
+        )),
     };
 
     let build_default = get_build_default();
@@ -213,7 +214,7 @@ pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
         exit(exitcode::OK);
     }
 
-    (result, config, declared)
+    (result, config.to_str().unwrap().to_string(), declared)
 }
 
 fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
@@ -223,7 +224,7 @@ fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
         .iter()
         .map(|x| (x.0.to_owned(), x.1.to_owned()))
         .collect();
-    let dirs: HashSet<String> = build_result
+    let dirs: HashSet<PathBuf> = build_result
         .dirs
         .unwrap()
         .iter()
