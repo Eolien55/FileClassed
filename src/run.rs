@@ -1,6 +1,7 @@
 use chrono::{offset::TimeZone, Local, NaiveDateTime};
 use lazy_static::lazy_static;
 use locale::Time;
+use rayon::prelude::*;
 use regex::Regex;
 use scan_dir::ScanDir;
 
@@ -61,7 +62,7 @@ pub fn expand(input: &str, codes: &HashMap<String, String>) -> String {
     result
 }
 
-fn get_new_name(
+pub fn get_new_name(
     name: &path::Path,
     dest: &str,
     codes: &HashMap<String, String>,
@@ -213,6 +214,25 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
     let mut background_thread: Option<std::thread::JoinHandle<()>> = None;
     let (tx, rx) = mpsc::channel::<bool>();
 
+    let handle_for_real_handle = |path: path::PathBuf, my_config: &lib::Config| -> Result<(), ()> {
+        if should_end.load(Ordering::SeqCst) {
+            log::trace!("I'm supposed to end while handling files");
+            return Err(());
+        }
+
+        if !lib::test_path!(&my_config.dest, "dir") {
+            log::error!(
+                "Destination `{}` doesn't exist anymore ! Exiting !",
+                my_config.dest
+            );
+            return Err(());
+        }
+
+        handle(path, &my_config.dest, &my_config.codes, my_config.timeinfo);
+
+        Ok(())
+    };
+
     if path::Path::new(&config_file).exists() && !my_config.once && !my_config.static_mode {
         log::trace!("Setting up config watcher");
 
@@ -331,10 +351,10 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                 break;
             }
 
-            let files: Vec<fs::DirEntry> = ScanDir::files()
+            let files: Vec<path::PathBuf> = ScanDir::files()
                 .walk(dir, |iter| {
                     iter.filter(|&(_, ref name)| name.matches('.').count() > 1)
-                        .map(|(entry, _)| entry)
+                        .map(|(entry, _)| entry.path())
                         .collect()
                 })
                 .unwrap();
@@ -347,29 +367,16 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                 break 'outer;
             }
 
-            for entry in files {
-                let current_path = entry.path();
-                if should_end.load(Ordering::SeqCst) {
-                    break 'outer;
-                }
-
-                if !lib::test_path!(&my_config.dest, "dir") {
-                    log::error!(
-                        "Destination `{}` doesn't exist anymore ! Exiting !",
-                        my_config.dest
-                    );
-                    break 'outer;
-                }
-
-                handle(
-                    current_path,
-                    &my_config.dest,
-                    &my_config.codes,
-                    my_config.timeinfo,
-                );
+            if should_end.load(Ordering::SeqCst) {
+                break 'outer;
             }
 
-            if should_end.load(Ordering::SeqCst) {
+            let error_hapenned: bool = files
+                .par_iter()
+                .map(|entry| handle_for_real_handle(entry.to_owned(), &my_config))
+                .any(|res| res.is_err());
+
+            if error_hapenned {
                 break 'outer;
             }
         }
@@ -430,6 +437,14 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
             .collect();
         if my_config.dirs.is_empty() {
             log::error!("No directory available anymore ! Exiting");
+            break 'outer;
+        }
+
+        if !lib::test_path!(&my_config.dest, "dir") {
+            log::error!(
+                "Destination `{}` doesn't exist anymore ! Exiting !",
+                my_config.dest
+            );
             break 'outer;
         }
     }
