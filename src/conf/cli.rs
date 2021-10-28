@@ -2,14 +2,13 @@ use dirs_next::config_dir;
 use structopt::clap::Shell;
 use structopt::StructOpt;
 
+use path::PathBuf;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::io;
 use std::path;
-use path::PathBuf;
 use std::process::exit;
 
-use super::super::main_config::clean as clean_custom;
 use super::defaults::get_build_default;
 use super::lib;
 
@@ -34,7 +33,7 @@ where
     setting = structopt::clap::AppSettings::ColoredHelp
 )]
 
-struct Cli {
+pub struct Cli {
     /// Sets the configurationg file
     #[structopt(short = "-C", long, value_name = "file")]
     config: Option<PathBuf>,
@@ -125,96 +124,94 @@ macro_rules! define_bool {
     }
 }
 
-pub fn get_args() -> (lib::Config, String, lib::DeclaredType) {
-    // Processing Options
-    let args = Cli::from_args();
-    let mut declared: lib::DeclaredType = [false, false, false, false, false, false, false, false];
+impl lib::Config {
+    pub fn from_args(args: Cli) -> (Self, String, lib::DeclaredType) {
+        let mut declared: lib::DeclaredType =
+            [false, false, false, false, false, false, false, false];
 
-    if let Some(shell) = args.completion {
-        let mut app = Cli::clap();
-        app.gen_completions_to("fcs", shell, &mut io::stdout());
-        exit(exitcode::OK);
-
-    }
-
-    let config = match args.config {
-        Some(file) => {
-            declared[lib::which_declared!("config")] = true;
-            file
-        }
-        None => PathBuf::from(format!(
-            "{}{}fcs.yml",
-            config_dir().unwrap().to_str().unwrap(),
-            path::MAIN_SEPARATOR,
-        )),
-    };
-
-    let build_default = get_build_default();
-
-    let result: lib::Config;
-    let mut build_result: lib::BuildConfig = build_default;
-
-    define_option!(
-        args,
-        build_result,
-        declared,
-        build_result,
-        // Options to define
-        dest,
-        dirs,
-        sleep,
-        codes
-    );
-
-    define_bool!(
-        args,
-        build_result,
-        declared,
-        // Bools to define
-        once,
-        timeinfo,
-        static_mode
-    );
-
-    result = convert_types(build_result);
-
-    if args.generate_config {
-        let mut result = result;
-
-        match clean_custom(&mut result) {
-            true => {
-                log::error!("Configuration is unusable");
-                exit(exitcode::DATAERR);
-            }
-            false => (),
+        if let Some(shell) = args.completion {
+            let mut app = Cli::clap();
+            app.gen_completions_to("fcs", shell, &mut io::stdout());
+            exit(exitcode::OK);
         }
 
-        let yaml_result = lib::ConfigSerDe {
-            dest: Some(result.dest),
-            dirs: Some(result.dirs),
-            once: Some(result.once),
-            timeinfo: Some(result.timeinfo),
-            static_mode: Some(result.static_mode),
-            sleep: Some(result.sleep),
-            codes: Some(result.codes),
-        };
-
-        let deserialized = match serde_yaml::to_string(&yaml_result) {
-            Ok(res) => res,
-            Err(e) => {
-                log::error!(
-                    "Failed somehow to parse configuration. Error : {}",
-                    e.to_string()
-                );
-                exit(exitcode::DATAERR);
+        let config = match args.config {
+            Some(file) => {
+                declared[lib::which_declared!("config")] = true;
+                file
             }
+            None => PathBuf::from(format!(
+                "{}{}fcs.yml",
+                config_dir().unwrap().to_str().unwrap(),
+                path::MAIN_SEPARATOR,
+            )),
         };
-        print!("{}", deserialized);
 
-        exit(exitcode::OK);
+        let build_default = get_build_default();
+
+        let mut build_result: lib::BuildConfig = build_default;
+
+        define_option!(
+            args,
+            build_result,
+            declared,
+            build_result,
+            // Options to define
+            dest,
+            dirs,
+            sleep,
+            codes
+        );
+
+        define_bool!(
+            args,
+            build_result,
+            declared,
+            // Bools to define
+            once,
+            timeinfo,
+            static_mode
+        );
+
+        let result = convert_types(build_result);
+
+        if args.generate_config {
+            let mut result = result;
+
+            match result.clean() {
+                true => {
+                    log::error!("Configuration is unusable");
+                    exit(exitcode::DATAERR);
+                }
+                false => (),
+            }
+
+            let yaml_result = lib::ConfigSerDe {
+                dest: Some(result.dest),
+                dirs: Some(result.dirs),
+                once: Some(result.once),
+                timeinfo: Some(result.timeinfo),
+                static_mode: Some(result.static_mode),
+                sleep: Some(result.sleep),
+                codes: Some(result.codes),
+            };
+
+            let deserialized = match serde_yaml::to_string(&yaml_result) {
+                Ok(res) => res,
+                Err(e) => {
+                    log::error!(
+                        "Failed somehow to parse configuration. Error : {}",
+                        e.to_string()
+                    );
+                    exit(exitcode::DATAERR);
+                }
+            };
+            print!("{}", deserialized);
+
+            exit(exitcode::OK);
+        }
+        (result, config.to_str().unwrap().to_string(), declared)
     }
-
-    (result, config.to_str().unwrap().to_string(), declared)
 }
 
 fn convert_types(build_result: lib::BuildConfig) -> lib::Config {

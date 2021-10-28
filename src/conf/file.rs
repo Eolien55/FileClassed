@@ -20,65 +20,67 @@ macro_rules! replace_value {
     };
 }
 
-pub fn get_config(
-    config: &mut lib::Config,
-    config_file: &mut String,
-    declared: &lib::DeclaredType,
-) {
-    let mut default_config_files = vec![
-        format!(
-            "{}{}fcs.yml",
-            config_dir().unwrap().to_str().unwrap(),
-            path::MAIN_SEPARATOR,
-        ),
-        format!(
-            "{}{}fcs{}init.yml",
-            config_dir().unwrap().to_str().unwrap(),
-            path::MAIN_SEPARATOR,
-            path::MAIN_SEPARATOR,
-        ),
-    ];
+impl lib::Config {
+    pub fn add_or_update_from_file(
+        &mut self,
+        config_file: &mut String,
+        declared: &lib::DeclaredType,
+    ) {
+        let mut default_config_files = vec![
+            format!(
+                "{}{}fcs.yml",
+                config_dir().unwrap().to_str().unwrap(),
+                path::MAIN_SEPARATOR,
+            ),
+            format!(
+                "{}{}fcs{}init.yml",
+                config_dir().unwrap().to_str().unwrap(),
+                path::MAIN_SEPARATOR,
+                path::MAIN_SEPARATOR,
+            ),
+        ];
 
-    if !declared[lib::which_declared!("config")] {
-        while !lib::test_path!(&config_file, "file") && !default_config_files.is_empty() {
-            *config_file = default_config_files.pop().unwrap();
+        if !declared[lib::which_declared!("config")] {
+            while !lib::test_path!(&config_file, "file") && !default_config_files.is_empty() {
+                *config_file = default_config_files.pop().unwrap();
+            }
         }
-    }
 
-    log::trace!("Reading `{}` for config", config_file);
+        log::trace!("Reading `{}` for config", config_file);
 
-    match fs::read_to_string(&config_file) {
-        Ok(reading_file) => match serde_yaml::from_str::<lib::ConfigSerDe>(&reading_file) {
-            Ok(from_file) => {
-                log::debug!("Config from file : {:?}", from_file);
-                let default = get_default();
-                replace_value!(
-                    from_file,
-                    config,
-                    declared,
-                    default,
-                    // Values to replace
-                    dirs,
-                    dest,
-                    once,
-                    sleep,
-                    codes,
-                    timeinfo,
-                    static_mode
-                );
-            }
-            Err(e) => {
+        match fs::read_to_string(&config_file) {
+            Ok(reading_file) => match serde_yaml::from_str::<lib::ConfigSerDe>(&reading_file) {
+                Ok(from_file) => {
+                    log::debug!("Config from file : {:?}", from_file);
+                    let default = get_default();
+                    replace_value!(
+                        from_file,
+                        self,
+                        declared,
+                        default,
+                        // Values to replace
+                        dirs,
+                        dest,
+                        once,
+                        sleep,
+                        codes,
+                        timeinfo,
+                        static_mode
+                    );
+                }
+                Err(e) => {
+                    log::error!(
+                        "Error happenned while parsing config file `{}`. Falling back to defaults",
+                        e.to_string()
+                    );
+                }
+            },
+            Err(_) => {
                 log::error!(
-                    "Error happenned while parsing config file `{}`. Falling back to defaults",
-                    e.to_string()
+                    "Config file `{}` doesn't exist or isn't valid UTF-8. Falling back to defaults",
+                    config_file
                 );
             }
-        },
-        Err(_) => {
-            log::error!(
-                "Config file `{}` doesn't exist or isn't valid UTF-8. Falling back to defaults",
-                config_file
-            );
         }
     }
 }

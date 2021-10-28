@@ -2,8 +2,8 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use fcs::run;
 use std::collections::HashMap;
 use std::path;
-use std::time;
 use std::str::FromStr;
+use std::time;
 
 pub fn bench_get_new_name(c: &mut Criterion) {
     let timestamp = time::SystemTime::now();

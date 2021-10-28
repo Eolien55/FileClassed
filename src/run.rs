@@ -17,10 +17,8 @@ use std::sync::{
 use std::thread::sleep;
 use std::time;
 
-use crate::conf::file::get_config;
 use crate::conf::lib;
 use crate::conf::lib::{Config, DeclaredType};
-use crate::main_config::clean;
 
 macro_rules! decode {
     ($code:expr, $codes:expr) => {
@@ -318,8 +316,12 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                         }
                     }
 
-                    if path::Path::new(&format!("{}{}fcs-should_end", dest_s.to_str().unwrap(), path::MAIN_SEPARATOR))
-                        .exists()
+                    if path::Path::new(&format!(
+                        "{}{}fcs-should_end",
+                        dest_s.to_str().unwrap(),
+                        path::MAIN_SEPARATOR
+                    ))
+                    .exists()
                     {
                         should_end_s_s.store(true, Ordering::SeqCst);
                         fs::remove_file(&format!(
@@ -395,9 +397,9 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                 log::info!("Config changed ! Loading it");
 
                 config_changed.store(false, Ordering::SeqCst);
-                get_config(&mut my_config, &mut config_file, &declared);
+                my_config.add_or_update_from_file(&mut config_file, &declared);
 
-                if clean(&mut my_config) {
+                if my_config.clean() {
                     should_end.store(true, Ordering::SeqCst);
                 }
 

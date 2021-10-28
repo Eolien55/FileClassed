@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use super::defaults;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -14,6 +15,12 @@ pub struct Config {
     pub codes: HashMap<String, String>,
 }
 
+impl Config {
+    pub fn default() -> Self {
+        defaults::get_default()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct BuildConfig {
     pub once: bool,
@@ -23,6 +30,12 @@ pub struct BuildConfig {
     pub dirs: Option<Vec<PathBuf>>,
     pub dest: Option<PathBuf>,
     pub codes: Option<Vec<(String, String)>>,
+}
+
+impl BuildConfig {
+    pub fn default() -> Self {
+        defaults::get_build_default()
+    }
 }
 
 pub type DeclaredType = [bool; 8];

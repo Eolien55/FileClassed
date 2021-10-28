@@ -1,7 +1,7 @@
 use super::lib;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::collections::{HashMap, HashSet};
 
 pub fn get_default() -> lib::Config {
     let default: lib::Config = lib::Config {
@@ -25,7 +25,11 @@ pub fn get_build_default() -> lib::BuildConfig {
         dest: Some(default.dest),
         sleep: Some(default.sleep),
         codes: Some(
-            default.codes.iter().map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned())).collect()
+            default
+                .codes
+                .iter()
+                .map(|tuple| (tuple.0.to_owned(), tuple.1.to_owned()))
+                .collect(),
         ),
         timeinfo: default.timeinfo,
         once: default.once,

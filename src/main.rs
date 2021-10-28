@@ -1,10 +1,12 @@
 use simple_logger::init_with_level;
 
 use std::process::exit;
+use structopt::StructOpt;
 
-use fcs::{conf, main_config, run};
+use fcs::{conf, run};
 
 fn main() {
+    let args = conf::cli::Cli::from_args();
     let verbose = conf::cli::get_verbose();
     match init_with_level(verbose.unwrap_or(log::Level::Error)) {
         Ok(_) => (),
@@ -21,10 +23,10 @@ fn main() {
     human_panic::setup_panic!();
 
     log::trace!("Setting up the configuration");
-    let (mut my_config, config_file, declared) = main_config::get_config_args();
+    let (mut my_config, config_file, declared) = conf::lib::Config::from_args_and_file(args);
 
     log::trace!("Cleaning a bit configuration");
-    let fatal = main_config::clean(&mut my_config);
+    let fatal = my_config.clean();
     if fatal {
         log::info!("Goodbye");
         exit(exitcode::DATAERR);
