@@ -7,7 +7,9 @@ use fcs::{conf, run};
 
 fn main() {
     let args = conf::cli::Cli::from_args();
-    let verbose = conf::cli::get_verbose();
+    let mut verbose = args.clone().verbose;
+    verbose.set_default(Some(log::Level::Warn));
+    let verbose = verbose.log_level();
     match init_with_level(verbose.unwrap_or(log::Level::Error)) {
         Ok(_) => (),
         Err(e) => {

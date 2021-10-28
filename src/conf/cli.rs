@@ -25,7 +25,7 @@ where
     Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Clone, StructOpt)]
 #[structopt(
     name = "fcs",
     about = "Efficient yet customizable file organizer",
@@ -69,7 +69,7 @@ pub struct Cli {
 
     /// Makes the program verbose
     #[structopt(flatten)]
-    verbose: clap_verbosity_flag::Verbosity,
+    pub verbose: clap_verbosity_flag::Verbosity,
 
     /// Generates completion script for specified shell and writing it on stdout
     #[structopt(long, value_name = "shell")]
@@ -85,13 +85,6 @@ pub struct Cli {
     /// Note also that the generated config file isn't pretty printed, ie it's quite ugly
     #[structopt(short, long)]
     generate_config: bool,
-}
-
-pub fn get_verbose() -> Option<log::Level> {
-    let mut verbose = Cli::from_args().verbose;
-    verbose.set_default(Some(log::Level::Warn));
-
-    verbose.log_level()
 }
 
 macro_rules! define_option {
