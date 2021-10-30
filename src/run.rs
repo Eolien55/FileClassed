@@ -1,8 +1,6 @@
 use chrono::{offset::TimeZone, Local, NaiveDateTime};
-use lazy_static::lazy_static;
 use locale::Time;
 use rayon::prelude::*;
-use regex::Regex;
 use scan_dir::ScanDir;
 
 use std::collections::{HashMap, HashSet};
@@ -26,11 +24,11 @@ macro_rules! decode {
     };
 }
 
-pub fn expand(input: &str, codes: &HashMap<String, String>) -> String {
-    let mut result = String::with_capacity(input.len());
-    if let Some(idx) = input.find('{') {
-        let mut input_str = input;
-        let mut next_seq_beg = idx;
+pub fn expand(input: &String, codes: &HashMap<String, String>) -> String {
+    if let Some(mut next_seq_beg) = input.find('{') {
+        let mut result = String::with_capacity(input.len());
+
+        let mut input_str = input.as_str();
 
         loop {
             result.push_str(&input_str[..next_seq_beg]);
@@ -53,11 +51,10 @@ pub fn expand(input: &str, codes: &HashMap<String, String>) -> String {
             input_str = &input_str[next_seq_beg..];
             next_seq_beg = input_str.find('{').unwrap_or(input_str.len());
         }
+        return result;
     } else {
-        result.push_str(input);
+        return input.to_owned();
     }
-
-    result
 }
 
 pub fn get_new_name(
@@ -125,11 +122,7 @@ pub fn get_new_name(
             .collect::<String>();
         next = splitted.1;
 
-        lazy_static! {
-            static ref BETWEEN_BRACKETS: Regex = Regex::new(r".*\{([^\{\}]+)\}.*").unwrap();
-        };
-
-        while BETWEEN_BRACKETS.is_match(&current) {
+        while current.find('{').is_some() {
             current = expand(&current, codes);
         }
 

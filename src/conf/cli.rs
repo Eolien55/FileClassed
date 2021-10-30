@@ -34,27 +34,27 @@ where
 )]
 
 pub struct Cli {
-    /// Sets the configurationg file
+    /// Set the configurationg file
     #[structopt(short = "-C", long, value_name = "file")]
     config: Option<PathBuf>,
 
-    /// Overrides the watching directories
+    /// Set the watching directories
     #[structopt(short, long = "dir", value_name = "directory")]
     dirs: Option<Vec<PathBuf>>,
 
-    /// Overrides destination directory
+    /// Set destination directory
     #[structopt(short = "-D", long, value_name = "directory")]
     dest: Option<PathBuf>,
 
-    /// Makes the program loop only once
+    /// Loop only once then exit
     #[structopt(short, long)]
     once: bool,
 
-    /// Sets the how much milliseconds the program should sleep between each loop
+    /// Sets sleeping time between each loop in ms
     #[structopt(short, long, value_name = "milliseconds")]
     sleep: Option<usize>,
 
-    /// Shortcuts, ie meanings
+    /// Set shortcuts
     #[structopt(
         short = "-c",
         long = "--code",
@@ -63,23 +63,23 @@ pub struct Cli {
     )]
     codes: Option<Vec<(String, String)>>,
 
-    /// Activates time info, ie including months and years in the path
+    /// Include year and month in path
     #[structopt(short, long)]
     timeinfo: bool,
 
-    /// Makes the program verbose
+    /// Set verbosity
     #[structopt(flatten)]
     pub verbose: clap_verbosity_flag::Verbosity,
 
-    /// Generates completion script for specified shell and writing it on stdout
+    /// Generate completion script for shell and output it
     #[structopt(long, value_name = "shell")]
     completion: Option<Shell>,
 
-    /// Runs in static mode, ie not reloading configuration file on changes
+    /// Disable configuration reloading on configuration file change
     #[structopt(short = "-S", long = "--static")]
     static_mode: bool,
 
-    /// Generates configuration file from CLI arguments
+    /// Generate configuration file from CLI arguments and output it
     ///
     /// Note that the generation isn't deterministic, which means codes won't be ordered the same way.
     /// Note also that the generated config file isn't pretty printed, ie it's quite ugly
