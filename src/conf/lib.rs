@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use super::defaults;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+
+use super::defaults;
 
 #[derive(Clone, Debug)]
 pub struct Config {

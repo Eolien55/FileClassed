@@ -2,12 +2,11 @@ use dirs_next::config_dir;
 use structopt::clap::Shell;
 use structopt::StructOpt;
 
-use path::PathBuf;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::io;
-use std::path;
 use std::process::exit;
+use std::{path, path::PathBuf};
 
 use super::defaults::get_build_default;
 use super::lib;
@@ -34,19 +33,19 @@ where
 )]
 
 pub struct Cli {
-    /// Set the configurationg file
+    /// Sets the configurationg file
     #[structopt(short = "-C", long, value_name = "file")]
     config: Option<PathBuf>,
 
-    /// Set the watching directories
+    /// Sets the watching directories
     #[structopt(short, long = "dir", value_name = "directory")]
     dirs: Option<Vec<PathBuf>>,
 
-    /// Set destination directory
+    /// Sets destination directory
     #[structopt(short = "-D", long, value_name = "directory")]
     dest: Option<PathBuf>,
 
-    /// Loop only once then exit
+    /// Loops only once then exit
     #[structopt(short, long)]
     once: bool,
 
@@ -54,7 +53,7 @@ pub struct Cli {
     #[structopt(short, long, value_name = "milliseconds")]
     sleep: Option<usize>,
 
-    /// Set shortcuts
+    /// Sets shortcuts
     #[structopt(
         short = "-c",
         long = "--code",
@@ -63,23 +62,23 @@ pub struct Cli {
     )]
     codes: Option<Vec<(String, String)>>,
 
-    /// Include year and month in path
+    /// Includes year and month in path
     #[structopt(short, long)]
     timeinfo: bool,
 
-    /// Set verbosity
+    /// Sets verbosity
     #[structopt(flatten)]
     pub verbose: clap_verbosity_flag::Verbosity,
 
-    /// Generate completion script for shell and output it
+    /// Generates completion script for shell and output it
     #[structopt(long, value_name = "shell")]
     completion: Option<Shell>,
 
-    /// Disable configuration reloading on configuration file change
+    /// Disables configuration reloading on configuration file change
     #[structopt(short = "-S", long = "--static")]
     static_mode: bool,
 
-    /// Generate configuration file from CLI arguments and output it
+    /// Generates configuration file from CLI arguments and output it
     ///
     /// Note that the generation isn't deterministic, which means codes won't be ordered the same way.
     /// Note also that the generated config file isn't pretty printed, ie it's quite ugly

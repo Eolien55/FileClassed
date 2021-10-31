@@ -1,7 +1,7 @@
 use simple_logger::init_with_level;
+use structopt::StructOpt;
 
 use std::process::exit;
-use structopt::StructOpt;
 
 use fcs::{conf, run};
 

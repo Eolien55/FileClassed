@@ -37,15 +37,14 @@ pub fn expand(input: &String, codes: &HashMap<String, String>) -> String {
             if input_str.is_empty() {
                 break;
             }
-            input_str = &input_str[1..];
 
             next_seq_beg = match input_str.find('}') {
                 Some(res) => {
-                    let code = &input_str[..res];
+                    let code = &input_str[1..res];
                     result.push_str(decode!(&code.to_string(), codes));
                     res + 1
                 }
-                None => next_seq_beg,
+                None => next_seq_beg + 1,
             };
 
             input_str = &input_str[next_seq_beg..];
@@ -58,7 +57,7 @@ pub fn expand(input: &String, codes: &HashMap<String, String>) -> String {
 }
 
 pub fn get_new_name(
-    name: &path::Path,
+    name: &str,
     dest: &path::Path,
     codes: &HashMap<String, String>,
     timestamp: Option<time::SystemTime>,
@@ -104,22 +103,12 @@ pub fn get_new_name(
         ending_path.push(year);
     }
 
-    let string_name: &str = &name
-        .to_str()
-        .unwrap()
-        .chars()
-        .skip(name.to_str().unwrap().rfind(path::MAIN_SEPARATOR).unwrap() + 1)
-        .collect::<String>();
-
-    let mut next = string_name;
+    let mut next: &str = name;
     let mut splitted: (&str, &str) = ("", "");
     while next.matches('.').count() > 1 {
         splitted = next.split_at(next.find('.').unwrap() + 1);
         let current = splitted.0;
-        let mut current: String = current
-            .chars()
-            .take(current.chars().count() - 1)
-            .collect::<String>();
+        let mut current: String = current[..current.len() - 1].to_string();
         next = splitted.1;
 
         while current.find('{').is_some() {
@@ -139,7 +128,7 @@ pub fn get_new_name(
     Ok((ending_path, dir))
 }
 
-fn handle(name: path::PathBuf, dest: &path::Path, codes: &HashMap<String, String>, timeinfo: bool) {
+fn handle(name: &path::Path, dest: &path::Path, codes: &HashMap<String, String>, timeinfo: bool) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
         log::warn!(
             "File `{}` disappeared before I could handle it !",
@@ -154,7 +143,13 @@ fn handle(name: path::PathBuf, dest: &path::Path, codes: &HashMap<String, String
         None
     };
 
-    match get_new_name(&name, dest, codes, timestamp, timeinfo) {
+    match get_new_name(
+        name.file_name().unwrap().to_str().unwrap(),
+        dest,
+        codes,
+        timestamp,
+        timeinfo,
+    ) {
         Ok(result) => match fs::create_dir_all(&result.1) {
             Ok(_) => match fs::rename(&name, &result.0) {
                 Ok(_) => log::info!("Moved path from {:?} to {:?}", name, result.0),
@@ -205,7 +200,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
     let mut background_thread: Option<std::thread::JoinHandle<()>> = None;
     let (tx, rx) = mpsc::channel::<bool>();
 
-    let handle_for_real_handle = |path: path::PathBuf, my_config: &lib::Config| -> Result<(), ()> {
+    let handle_for_real_handle = |path: &path::Path, my_config: &lib::Config| -> Result<(), ()> {
         if should_end.load(Ordering::SeqCst) {
             log::trace!("I'm supposed to end while handling files");
             return Err(());
@@ -368,7 +363,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
             let error_hapenned: bool = files
                 .par_iter()
-                .map(|entry| handle_for_real_handle(entry.to_owned(), &my_config))
+                .map(|entry| handle_for_real_handle(&entry.to_owned(), &my_config))
                 .any(|res| res.is_err());
 
             if error_hapenned {

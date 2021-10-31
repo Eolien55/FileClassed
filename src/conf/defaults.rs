@@ -1,7 +1,8 @@
-use super::lib;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::str::FromStr;
+
+use super::lib;
 
 pub fn get_default() -> lib::Config {
     let default: lib::Config = lib::Config {

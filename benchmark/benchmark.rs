@@ -21,7 +21,6 @@ pub fn bench_get_new_name(c: &mut Criterion) {
     let mut name = name.join(".");
     name += "..0";
     name = format!("{}/{}", dest_str, name);
-    let name = path::Path::new(&name);
 
     c.bench_function("get_new_name", |b| {
         b.iter(|| {
@@ -36,20 +35,18 @@ pub fn bench_get_new_name(c: &mut Criterion) {
     });
 }
 
-pub fn bench_expand(c : &mut Criterion) {
+pub fn bench_expand(c: &mut Criterion) {
     let keys = "a".to_string();
     let codes: HashMap<String, String> = keys
         .chars()
         .map(|key| (String::from(key), format!("{}zerty", key)))
         .collect();
-    
-    let name : Vec<_> = keys.chars().map(String::from).collect();
+
+    let name: Vec<_> = keys.chars().map(String::from).collect();
     let name = format!("{{{}}}", name.join("}{"));
 
     c.bench_function("expand", |b| {
-        b.iter(|| {
-            run::expand(black_box(&name), black_box(&codes))
-        })
+        b.iter(|| run::expand(black_box(&name), black_box(&codes)))
     });
 }
 
