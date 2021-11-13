@@ -6,7 +6,10 @@ use std::process::exit;
 use fcs::{conf, run};
 
 fn main() {
+    // Getting CLI args
     let args = conf::cli::Cli::from_args();
+
+    // Setting up logger with verbose level
     let mut verbose = args.clone().verbose;
     verbose.set_default(Some(log::Level::Warn));
     let verbose = verbose.log_level();
