@@ -3,7 +3,6 @@ use dirs_next::config_dir;
 use std::fs;
 use std::path;
 
-use super::defaults::get_default;
 use super::lib;
 
 macro_rules! replace_value {
@@ -52,7 +51,7 @@ impl lib::Config {
             Ok(reading_file) => match serde_yaml::from_str::<lib::ConfigSerDe>(&reading_file) {
                 Ok(from_file) => {
                     log::debug!("Config from file : {:?}", from_file);
-                    let default = get_default();
+                    let default = lib::Config::default();
                     replace_value!(
                         from_file,
                         self,

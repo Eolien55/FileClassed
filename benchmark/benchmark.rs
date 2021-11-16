@@ -52,7 +52,7 @@ pub fn bench_expand(c: &mut Criterion) {
     });
 }
 
-pub fn bench_brackets(c : &mut Criterion) {
+pub fn bench_brackets(c: &mut Criterion) {
     let string = "{{}";
 
     c.bench_function("brackets", |b| {

@@ -26,17 +26,20 @@ macro_rules! decode {
 
 #[inline]
 pub fn find_first_valid_opening_bracket(input: &str) -> Option<usize> {
-    let result : Option<usize>;
+    let result: Option<usize>;
     let mut offset = 0;
     let mut mut_input = input;
-    
+
     loop {
         match mut_input.find('{') {
             Some(naive_first) => match mut_input[naive_first + 1..].find('}') {
-                Some(naive_first_closing_after_first) => match mut_input[naive_first + 1..].find('{') {
+                Some(naive_first_closing_after_first) => match mut_input[naive_first + 1..]
+                    .find('{')
+                {
                     Some(naive_next) => {
                         let naive_next = naive_next + naive_first + 1;
-                        if naive_first < naive_next && naive_next < naive_first_closing_after_first {
+                        if naive_first < naive_next && naive_next < naive_first_closing_after_first
+                        {
                             offset += naive_next;
                             mut_input = &mut_input[naive_next..];
                             continue;
@@ -45,11 +48,20 @@ pub fn find_first_valid_opening_bracket(input: &str) -> Option<usize> {
                             break;
                         }
                     }
-                    None => {result = Some(naive_first + offset); break;},
+                    None => {
+                        result = Some(naive_first + offset);
+                        break;
+                    }
                 },
-                None => {result = None ; break;},
+                None => {
+                    result = None;
+                    break;
+                }
             },
-            None => {result = None ; break},
+            None => {
+                result = None;
+                break;
+            }
         }
     }
 
@@ -394,12 +406,6 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
             let files: Vec<path::PathBuf> = ScanDir::files()
                 .walk(dir, |iter| {
                     iter.filter(|&(_, ref name)| {
-                        println!(
-                            "{} {}",
-                            name,
-                            name.matches(my_config.separator).count()
-                                > my_config.filename_separators
-                        );
                         name.matches(my_config.separator).count() > my_config.filename_separators
                     })
                     .map(|(entry, _)| entry.path())
