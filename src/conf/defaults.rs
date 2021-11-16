@@ -13,6 +13,8 @@ pub fn get_default() -> lib::Config {
         timeinfo: false,
         once: false,
         static_mode: false,
+        separator: '.',
+        filename_separators: 1,
     };
 
     default
@@ -35,6 +37,8 @@ pub fn get_build_default() -> lib::BuildConfig {
         timeinfo: default.timeinfo,
         once: default.once,
         static_mode: default.static_mode,
+        separator: Some(default.separator),
+        filename_separators: Some(default.filename_separators),
     };
 
     build_default

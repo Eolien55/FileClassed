@@ -24,11 +24,43 @@ macro_rules! decode {
     };
 }
 
-pub fn expand(input: &String, codes: &HashMap<String, String>) -> String {
-    if let Some(mut next_seq_beg) = input.find('{') {
+#[inline]
+pub fn find_first_valid_opening_bracket(input: &str) -> Option<usize> {
+    let result : Option<usize>;
+    let mut offset = 0;
+    let mut mut_input = input;
+    
+    loop {
+        match mut_input.find('{') {
+            Some(naive_first) => match mut_input[naive_first + 1..].find('}') {
+                Some(naive_first_closing_after_first) => match mut_input[naive_first + 1..].find('{') {
+                    Some(naive_next) => {
+                        let naive_next = naive_next + naive_first + 1;
+                        if naive_first < naive_next && naive_next < naive_first_closing_after_first {
+                            offset += naive_next;
+                            mut_input = &mut_input[naive_next..];
+                            continue;
+                        } else {
+                            result = Some(naive_first + offset);
+                            break;
+                        }
+                    }
+                    None => {result = Some(naive_first + offset); break;},
+                },
+                None => {result = None ; break;},
+            },
+            None => {result = None ; break},
+        }
+    }
+
+    result
+}
+
+pub fn expand(input: &str, codes: &HashMap<String, String>) -> String {
+    if let Some(mut next_seq_beg) = find_first_valid_opening_bracket(input) {
         let mut result = String::with_capacity(input.len());
 
-        let mut input_str = input.as_str();
+        let mut input_str = input;
 
         loop {
             result.push_str(&input_str[..next_seq_beg]);
@@ -48,11 +80,11 @@ pub fn expand(input: &String, codes: &HashMap<String, String>) -> String {
             };
 
             input_str = &input_str[next_seq_beg..];
-            next_seq_beg = input_str.find('{').unwrap_or(input_str.len());
+            next_seq_beg = find_first_valid_opening_bracket(input_str).unwrap_or(input_str.len());
         }
-        return result;
+        result
     } else {
-        return input.to_owned();
+        input.to_owned()
     }
 }
 
@@ -62,6 +94,8 @@ pub fn get_new_name(
     codes: &HashMap<String, String>,
     timestamp: Option<time::SystemTime>,
     timeinfo: bool,
+    separator: char,
+    filename_separators: usize,
 ) -> Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
     let mut year: String = "".to_string();
     let month_nb: usize;
@@ -105,13 +139,13 @@ pub fn get_new_name(
 
     let mut next: &str = name;
     let mut splitted: (&str, &str) = ("", "");
-    while next.matches('.').count() > 1 {
-        splitted = next.split_at(next.find('.').unwrap() + 1);
+    while next.matches(separator).count() > filename_separators {
+        splitted = next.split_at(next.find(separator).unwrap() + 1);
         let current = splitted.0;
         let mut current: String = current[..current.len() - 1].to_string();
         next = splitted.1;
 
-        while current.find('{').is_some() {
+        while find_first_valid_opening_bracket(&current).is_some() {
             current = expand(&current, codes);
         }
 
@@ -128,7 +162,14 @@ pub fn get_new_name(
     Ok((ending_path, dir))
 }
 
-fn handle(name: &path::Path, dest: &path::Path, codes: &HashMap<String, String>, timeinfo: bool) {
+fn handle(
+    name: &path::Path,
+    dest: &path::Path,
+    codes: &HashMap<String, String>,
+    timeinfo: bool,
+    separator: char,
+    filename_separators: usize,
+) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
         log::warn!(
             "File `{}` disappeared before I could handle it !",
@@ -149,6 +190,8 @@ fn handle(name: &path::Path, dest: &path::Path, codes: &HashMap<String, String>,
         codes,
         timestamp,
         timeinfo,
+        separator,
+        filename_separators,
     ) {
         Ok(result) => match fs::create_dir_all(&result.1) {
             Ok(_) => match fs::rename(&name, &result.0) {
@@ -214,7 +257,14 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
             return Err(());
         }
 
-        handle(path, &my_config.dest, &my_config.codes, my_config.timeinfo);
+        handle(
+            path,
+            &my_config.dest,
+            &my_config.codes,
+            my_config.timeinfo,
+            my_config.separator,
+            my_config.filename_separators,
+        );
 
         Ok(())
     };
@@ -343,9 +393,17 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
             let files: Vec<path::PathBuf> = ScanDir::files()
                 .walk(dir, |iter| {
-                    iter.filter(|&(_, ref name)| name.matches('.').count() > 1)
-                        .map(|(entry, _)| entry.path())
-                        .collect()
+                    iter.filter(|&(_, ref name)| {
+                        println!(
+                            "{} {}",
+                            name,
+                            name.matches(my_config.separator).count()
+                                > my_config.filename_separators
+                        );
+                        name.matches(my_config.separator).count() > my_config.filename_separators
+                    })
+                    .map(|(entry, _)| entry.path())
+                    .collect()
                 })
                 .unwrap();
 

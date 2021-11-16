@@ -5,6 +5,13 @@ use std::path::PathBuf;
 
 use super::defaults;
 
+pub type CodesType = HashMap<String, ValType>;
+
+pub enum ValType {
+    String,
+    CodesType,
+}
+
 #[derive(Clone, Debug)]
 pub struct Config {
     pub once: bool,
@@ -14,9 +21,12 @@ pub struct Config {
     pub dest: PathBuf,
     pub dirs: HashSet<PathBuf>,
     pub codes: HashMap<String, String>,
+    pub separator: char,
+    pub filename_separators: usize,
 }
 
 impl Config {
+    #[inline]
     pub fn default() -> Self {
         defaults::get_default()
     }
@@ -31,15 +41,18 @@ pub struct BuildConfig {
     pub dirs: Option<Vec<PathBuf>>,
     pub dest: Option<PathBuf>,
     pub codes: Option<Vec<(String, String)>>,
+    pub separator: Option<char>,
+    pub filename_separators: Option<usize>,
 }
 
 impl BuildConfig {
+    #[inline]
     pub fn default() -> Self {
         defaults::get_build_default()
     }
 }
 
-pub type DeclaredType = [bool; 8];
+pub type DeclaredType = [bool; 10];
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigSerDe {
@@ -78,6 +91,8 @@ macro_rules! which_declared {
             "config" => 5,
             "timeinfo" => 6,
             "static_mode" => 7,
+            "separator" => 8,
+            "filename_separators" => 9,
             _ => 8,
         }
     };

@@ -8,7 +8,6 @@ use std::io;
 use std::process::exit;
 use std::{path, path::PathBuf};
 
-use super::defaults::get_build_default;
 use super::lib;
 
 fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error>>
@@ -84,6 +83,14 @@ pub struct Cli {
     /// Note also that the generated config file isn't pretty printed, ie it's quite ugly
     #[structopt(short, long)]
     generate_config: bool,
+
+    /// Set the separator to separate each filename part
+    #[structopt(short = "-p", long)]
+    separator: Option<char>,
+
+    /// Set the number of characters that are the separator ('.' by default) in the filename
+    #[structopt(short, long)]
+    filename_separators: Option<usize>,
 }
 
 macro_rules! define_option {
@@ -118,8 +125,9 @@ macro_rules! define_bool {
 
 impl lib::Config {
     pub fn from_args(args: Cli) -> (Self, String, lib::DeclaredType) {
-        let mut declared: lib::DeclaredType =
-            [false, false, false, false, false, false, false, false];
+        let mut declared: lib::DeclaredType = [
+            false, false, false, false, false, false, false, false, false, false,
+        ];
 
         if let Some(shell) = args.completion {
             let mut app = Cli::clap();
@@ -139,7 +147,7 @@ impl lib::Config {
             )),
         };
 
-        let build_default = get_build_default();
+        let build_default = lib::BuildConfig::default();
 
         let mut build_result: lib::BuildConfig = build_default;
 
@@ -152,7 +160,9 @@ impl lib::Config {
             dest,
             dirs,
             sleep,
-            codes
+            codes,
+            separator,
+            filename_separators
         );
 
         define_bool!(
@@ -222,6 +232,8 @@ fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
 
     let dest = build_result.dest.unwrap();
     let sleep = build_result.sleep.unwrap();
+    let separator = build_result.separator.unwrap();
+    let filename_separators = build_result.filename_separators.unwrap();
 
     let once = build_result.once;
     let timeinfo = build_result.timeinfo;
@@ -235,5 +247,7 @@ fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
         once,
         timeinfo,
         static_mode,
+        separator,
+        filename_separators,
     }
 }

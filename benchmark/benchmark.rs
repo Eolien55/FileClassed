@@ -30,6 +30,8 @@ pub fn bench_get_new_name(c: &mut Criterion) {
                 black_box(&codes),
                 black_box(Some(timestamp)),
                 black_box(false),
+                black_box('.'),
+                black_box(1),
             )
         })
     });
@@ -50,5 +52,13 @@ pub fn bench_expand(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench_get_new_name, bench_expand);
+pub fn bench_brackets(c : &mut Criterion) {
+    let string = "{{}";
+
+    c.bench_function("brackets", |b| {
+        b.iter(|| run::find_first_valid_opening_bracket(black_box(string)))
+    });
+}
+
+criterion_group!(benches, bench_get_new_name, bench_expand, bench_brackets);
 criterion_main!(benches);
