@@ -32,6 +32,8 @@ pub fn bench_get_new_name(c: &mut Criterion) {
                 black_box(false),
                 black_box('.'),
                 black_box(1),
+                black_box('{'),
+                black_box('}'),
             )
         })
     });
@@ -48,7 +50,14 @@ pub fn bench_expand(c: &mut Criterion) {
     let name = format!("{{{}}}", name.join("}{"));
 
     c.bench_function("expand", |b| {
-        b.iter(|| run::expand(black_box(&name), black_box(&codes)))
+        b.iter(|| {
+            run::expand(
+                black_box(&name),
+                black_box(&codes),
+                black_box('{'),
+                black_box('}'),
+            )
+        })
     });
 }
 
@@ -56,7 +65,9 @@ pub fn bench_brackets(c: &mut Criterion) {
     let string = "{{}";
 
     c.bench_function("brackets", |b| {
-        b.iter(|| run::find_first_valid_opening_bracket(black_box(string)))
+        b.iter(|| {
+            run::find_first_valid_opening_bracket(black_box(string), black_box('{'), black_box('}'))
+        })
     });
 }
 

@@ -114,6 +114,15 @@ impl conf::Config {
             fatal = true;
         }
 
+        if self.begin_var == self.end_var {
+            log::error!(
+                "The 'begin variable token' ({}) is identical to the 'end variable token' ({})",
+                self.begin_var,
+                self.end_var
+            );
+            fatal = true;
+        }
+
         log::debug!("Here's the config : {:#?}", self);
 
         fatal

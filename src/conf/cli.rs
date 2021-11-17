@@ -91,6 +91,14 @@ pub struct Cli {
     /// Set the number of characters that are the separator ('.' by default) in the filename
     #[structopt(short, long)]
     filename_separators: Option<usize>,
+
+    /// Set the character to detect a variable 'lookup' ('{' by default)
+    #[structopt(short, long)]
+    begin_var: Option<char>,
+
+    /// Set the character to detect the end of a variable 'lookup' ('}' by default)
+    #[structopt(short, long)]
+    end_var: Option<char>,
 }
 
 macro_rules! define_option {
@@ -125,9 +133,7 @@ macro_rules! define_bool {
 
 impl lib::Config {
     pub fn from_args(args: Cli) -> (Self, String, lib::DeclaredType) {
-        let mut declared: lib::DeclaredType = [
-            false, false, false, false, false, false, false, false, false, false,
-        ];
+        let mut declared: lib::DeclaredType = [false; 12];
 
         if let Some(shell) = args.completion {
             let mut app = Cli::clap();
@@ -162,7 +168,9 @@ impl lib::Config {
             sleep,
             codes,
             separator,
-            filename_separators
+            filename_separators,
+            begin_var,
+            end_var
         );
 
         define_bool!(
@@ -189,6 +197,10 @@ impl lib::Config {
             }
 
             let yaml_result = lib::ConfigSerDe {
+                separator: Some(result.separator),
+                filename_separators: Some(result.filename_separators),
+                begin_var: Some(result.begin_var),
+                end_var: Some(result.end_var),
                 dest: Some(result.dest),
                 dirs: Some(result.dirs),
                 once: Some(result.once),
@@ -234,6 +246,8 @@ fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
     let sleep = build_result.sleep.unwrap();
     let separator = build_result.separator.unwrap();
     let filename_separators = build_result.filename_separators.unwrap();
+    let begin_var = build_result.begin_var.unwrap();
+    let end_var = build_result.end_var.unwrap();
 
     let once = build_result.once;
     let timeinfo = build_result.timeinfo;
@@ -249,5 +263,7 @@ fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
         static_mode,
         separator,
         filename_separators,
+        begin_var,
+        end_var,
     }
 }

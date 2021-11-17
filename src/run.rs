@@ -25,16 +25,20 @@ macro_rules! decode {
 }
 
 #[inline]
-pub fn find_first_valid_opening_bracket(input: &str) -> Option<usize> {
+pub fn find_first_valid_opening_bracket(
+    input: &str,
+    begin_var: char,
+    end_var: char,
+) -> Option<usize> {
     let result: Option<usize>;
     let mut offset = 0;
     let mut mut_input = input;
 
     loop {
-        match mut_input.find('{') {
-            Some(naive_first) => match mut_input[naive_first + 1..].find('}') {
+        match mut_input.find(begin_var) {
+            Some(naive_first) => match mut_input[naive_first + 1..].find(end_var) {
                 Some(naive_first_closing_after_first) => match mut_input[naive_first + 1..]
-                    .find('{')
+                    .find(begin_var)
                 {
                     Some(naive_next) => {
                         let naive_next = naive_next + naive_first + 1;
@@ -68,8 +72,14 @@ pub fn find_first_valid_opening_bracket(input: &str) -> Option<usize> {
     result
 }
 
-pub fn expand(input: &str, codes: &HashMap<String, String>) -> String {
-    if let Some(mut next_seq_beg) = find_first_valid_opening_bracket(input) {
+
+pub fn expand(
+    input: &str,
+    codes: &HashMap<String, String>,
+    begin_var: char,
+    end_var: char,
+) -> String {
+    if let Some(mut next_seq_beg) = find_first_valid_opening_bracket(input, begin_var, end_var) {
         let mut result = String::with_capacity(input.len());
 
         let mut input_str = input;
@@ -82,7 +92,7 @@ pub fn expand(input: &str, codes: &HashMap<String, String>) -> String {
                 break;
             }
 
-            next_seq_beg = match input_str.find('}') {
+            next_seq_beg = match input_str.find(end_var) {
                 Some(res) => {
                     let code = &input_str[1..res];
                     result.push_str(decode!(&code.to_string(), codes));
@@ -92,7 +102,8 @@ pub fn expand(input: &str, codes: &HashMap<String, String>) -> String {
             };
 
             input_str = &input_str[next_seq_beg..];
-            next_seq_beg = find_first_valid_opening_bracket(input_str).unwrap_or(input_str.len());
+            next_seq_beg = find_first_valid_opening_bracket(input_str, begin_var, end_var)
+                .unwrap_or(input_str.len());
         }
         result
     } else {
@@ -108,6 +119,8 @@ pub fn get_new_name(
     timeinfo: bool,
     separator: char,
     filename_separators: usize,
+    begin_var: char,
+    end_var: char,
 ) -> Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
     let mut year: String = "".to_string();
     let month_nb: usize;
@@ -157,8 +170,8 @@ pub fn get_new_name(
         let mut current: String = current[..current.len() - 1].to_string();
         next = splitted.1;
 
-        while find_first_valid_opening_bracket(&current).is_some() {
-            current = expand(&current, codes);
+        while find_first_valid_opening_bracket(&current, begin_var, end_var).is_some() {
+            current = expand(&current, codes, begin_var, end_var);
         }
 
         ending_path.push(decode!(&current, codes));
@@ -181,6 +194,8 @@ fn handle(
     timeinfo: bool,
     separator: char,
     filename_separators: usize,
+    begin_var: char,
+    end_var: char,
 ) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
         log::warn!(
@@ -204,6 +219,8 @@ fn handle(
         timeinfo,
         separator,
         filename_separators,
+        begin_var,
+        end_var,
     ) {
         Ok(result) => match fs::create_dir_all(&result.1) {
             Ok(_) => match fs::rename(&name, &result.0) {
@@ -276,6 +293,8 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
             my_config.timeinfo,
             my_config.separator,
             my_config.filename_separators,
+            my_config.begin_var,
+            my_config.end_var,
         );
 
         Ok(())

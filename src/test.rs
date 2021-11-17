@@ -17,19 +17,27 @@ fn test_expand() {
     .map(|tuple| (String::from(tuple.0), String::from(tuple.1)))
     .collect();
 
-    assert_eq!(run::expand(&"{{fr}".to_string(), &codes), "{French");
-    assert_eq!(run::expand(&"{fr".to_string(), &codes), "{fr");
     assert_eq!(
-        run::expand(&"{fr} {hst} (18th {cnt})".to_string(), &codes),
+        run::expand(&"{{fr}".to_string(), &codes, '{', '}'),
+        "{French"
+    );
+    assert_eq!(run::expand(&"{fr".to_string(), &codes, '{', '}'), "{fr");
+    assert_eq!(
+        run::expand(&"{fr} {hst} (18th {cnt})".to_string(), &codes, '{', '}'),
         "French History (18th Century)"
     );
     assert_eq!(
-        run::expand(&"{fr {hst} (18th {cnt})".to_string(), &codes),
+        run::expand(&"{fr {hst} (18th {cnt})".to_string(), &codes, '{', '}'),
         "{fr History (18th Century)"
     );
 
     assert_eq!(
-        run::expand(&run::expand(&"{sh{1}}".to_string(), &codes), &codes),
+        run::expand(
+            &run::expand(&"[sh{1}]".to_string(), &codes, '{', '}'),
+            &codes,
+            '[',
+            ']'
+        ),
         "Shell One"
     );
 }

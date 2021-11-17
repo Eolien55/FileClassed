@@ -64,7 +64,11 @@ impl lib::Config {
                         sleep,
                         codes,
                         timeinfo,
-                        static_mode
+                        static_mode,
+                        separator,
+                        filename_separators,
+                        begin_var,
+                        end_var
                     );
                 }
                 Err(e) => {

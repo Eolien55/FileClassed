@@ -15,6 +15,8 @@ pub fn get_default() -> lib::Config {
         static_mode: false,
         separator: '.',
         filename_separators: 1,
+        begin_var: '{',
+        end_var: '}',
     }
 }
 
@@ -37,5 +39,7 @@ pub fn get_build_default() -> lib::BuildConfig {
         static_mode: default.static_mode,
         separator: Some(default.separator),
         filename_separators: Some(default.filename_separators),
+        begin_var: Some(default.begin_var),
+        end_var: Some(default.end_var),
     }
 }

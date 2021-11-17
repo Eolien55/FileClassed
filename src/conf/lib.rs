@@ -23,6 +23,8 @@ pub struct Config {
     pub codes: HashMap<String, String>,
     pub separator: char,
     pub filename_separators: usize,
+    pub begin_var: char,
+    pub end_var: char,
 }
 
 impl Config {
@@ -43,6 +45,8 @@ pub struct BuildConfig {
     pub codes: Option<Vec<(String, String)>>,
     pub separator: Option<char>,
     pub filename_separators: Option<usize>,
+    pub begin_var: Option<char>,
+    pub end_var: Option<char>,
 }
 
 impl BuildConfig {
@@ -52,10 +56,14 @@ impl BuildConfig {
     }
 }
 
-pub type DeclaredType = [bool; 10];
+pub type DeclaredType = [bool; 12];
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigSerDe {
+    pub separator: Option<char>,
+    pub filename_separators: Option<usize>,
+    pub begin_var: Option<char>,
+    pub end_var: Option<char>,
     pub once: Option<bool>,
     pub timeinfo: Option<bool>,
     pub static_mode: Option<bool>,
