@@ -28,10 +28,8 @@ fn main() {
     human_panic::setup_panic!();
 
     log::trace!("Setting up the configuration");
-    let (mut my_config, config_file, declared) = conf::lib::Config::from_args_and_file(args);
+    let (my_config, config_file, declared, fatal) = conf::lib::Config::from_args_and_file(args);
 
-    log::trace!("Cleaning a bit configuration");
-    let fatal = my_config.clean();
     if fatal {
         log::info!("Goodbye");
         exit(exitcode::DATAERR);

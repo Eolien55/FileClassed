@@ -30,10 +30,8 @@ pub fn bench_get_new_name(c: &mut Criterion) {
                 black_box(&codes),
                 black_box(Some(timestamp)),
                 black_box(false),
-                black_box('.'),
-                black_box(1),
-                black_box('{'),
-                black_box('}'),
+                (black_box('.'), black_box(1)),
+                (black_box('{'), black_box('}')),
             )
         })
     });

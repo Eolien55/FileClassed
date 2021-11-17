@@ -1,24 +1,24 @@
 ---
-dest: ~/Documents
-dirs:
-  - ~/Documents-source
-
+separator: "."
+filename_separators: 1
+begin_var: "{"
+end_var: "}"
 once: false
 timeinfo: false
 static_mode: false
 sleep: 1000
-
 codes:
   hst: History
-  cnt: Century
+  phi: Philosophy
   cs: Computer Science
-  en: English
-  chin: Chinese
-  mt: Mathematics
-  sp: Sports
+  cn: Chinese
   phy: Physics
-  ch: Chemestry
-  glb: Global
-  gr: Greek
-  fr: French
   asg: Assignments
+  en: English
+  mt: Mathematics
+  fr: French
+  ch: Chemestry
+  gr: Greek
+dest: ~/Documents
+dirs:
+  - ~/Documents-source

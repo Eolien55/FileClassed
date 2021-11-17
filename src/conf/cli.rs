@@ -188,7 +188,7 @@ impl lib::Config {
         if args.generate_config {
             let mut result = result;
 
-            match result.clean() {
+            match result.clean(false) {
                 true => {
                     log::error!("Configuration is unusable");
                     exit(exitcode::DATAERR);

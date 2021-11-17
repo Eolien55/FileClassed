@@ -72,7 +72,6 @@ pub fn find_first_valid_opening_bracket(
     result
 }
 
-
 pub fn expand(
     input: &str,
     codes: &HashMap<String, String>,
@@ -117,10 +116,8 @@ pub fn get_new_name(
     codes: &HashMap<String, String>,
     timestamp: Option<time::SystemTime>,
     timeinfo: bool,
-    separator: char,
-    filename_separators: usize,
-    begin_var: char,
-    end_var: char,
+    separator: (char, usize),
+    var: (char, char),
 ) -> Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
     let mut year: String = "".to_string();
     let month_nb: usize;
@@ -164,14 +161,14 @@ pub fn get_new_name(
 
     let mut next: &str = name;
     let mut splitted: (&str, &str) = ("", "");
-    while next.matches(separator).count() > filename_separators {
-        splitted = next.split_at(next.find(separator).unwrap() + 1);
+    while next.matches(separator.0).count() > separator.1 {
+        splitted = next.split_at(next.find(separator.0).unwrap() + 1);
         let current = splitted.0;
         let mut current: String = current[..current.len() - 1].to_string();
         next = splitted.1;
 
-        while find_first_valid_opening_bracket(&current, begin_var, end_var).is_some() {
-            current = expand(&current, codes, begin_var, end_var);
+        while find_first_valid_opening_bracket(&current, var.0, var.1).is_some() {
+            current = expand(&current, codes, var.0, var.1);
         }
 
         ending_path.push(decode!(&current, codes));
@@ -192,10 +189,8 @@ fn handle(
     dest: &path::Path,
     codes: &HashMap<String, String>,
     timeinfo: bool,
-    separator: char,
-    filename_separators: usize,
-    begin_var: char,
-    end_var: char,
+    separator: (char, usize),
+    var: (char, char),
 ) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
         log::warn!(
@@ -218,9 +213,7 @@ fn handle(
         timestamp,
         timeinfo,
         separator,
-        filename_separators,
-        begin_var,
-        end_var,
+        var,
     ) {
         Ok(result) => match fs::create_dir_all(&result.1) {
             Ok(_) => match fs::rename(&name, &result.0) {
@@ -291,10 +284,8 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
             &my_config.dest,
             &my_config.codes,
             my_config.timeinfo,
-            my_config.separator,
-            my_config.filename_separators,
-            my_config.begin_var,
-            my_config.end_var,
+            (my_config.separator, my_config.filename_separators),
+            (my_config.begin_var, my_config.end_var),
         );
 
         Ok(())
@@ -470,7 +461,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                 config_changed.store(false, Ordering::SeqCst);
                 my_config.add_or_update_from_file(&mut config_file, &declared);
 
-                if my_config.clean() {
+                if my_config.clean(true) {
                     should_end.store(true, Ordering::SeqCst);
                 }
 

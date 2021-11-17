@@ -7,34 +7,41 @@ use super::lib as conf;
 
 impl conf::Config {
     // Get config from CLI args and config file
-    pub fn from_args_and_file(args: cli::Cli) -> (Self, String, conf::DeclaredType) {
+    pub fn from_args_and_file(args: cli::Cli) -> (Self, String, conf::DeclaredType, bool) {
         log::trace!("Getting arguments from CLI");
         let (mut config, mut config_file, declared) = conf::Config::from_args(args);
 
         config.add_or_update_from_file(&mut config_file, &declared);
 
-        config.clean();
+        log::trace!("Cleaning a bit configuration");
+        let fatal = config.clean(true);
 
-        (config, config_file, declared)
+        (config, config_file, declared, fatal)
     }
 
     // The bool value indicates if the config is so messed
     // up that it is unusable, and if the program should exit
-    pub fn clean(&mut self) -> bool {
+    pub fn clean(&mut self, mutates: bool) -> bool {
         let mut fatal = false;
+        let mut true_fatal = false;
 
+        let dest;
         match shellexpand::full(self.dest.to_str().unwrap()) {
-            Ok(result) => self.dest = PathBuf::from_str(&result).unwrap(),
+            Ok(result) => dest = PathBuf::from_str(&result).unwrap(),
             Err(e) => {
-                log::error!(
-                    "Error while expanding destination : {}. Exiting",
-                    e.to_string()
-                );
+                if mutates {
+                    log::error!(
+                        "Error while expanding destination : {}. Exiting",
+                        e.to_string()
+                    );
+                } else {
+                    log::warn!("Error while expanding destination : {}", e.to_string());
+                }
                 fatal = true;
-                return fatal;
+                return true_fatal || (fatal && mutates);
             }
         }
-        self.dirs = self
+        let dirs: HashSet<_> = self
             .dirs
             .iter()
             .map(|dir| match shellexpand::full(dir.to_str().unwrap()) {
@@ -50,32 +57,41 @@ impl conf::Config {
             return fatal;
         }
 
-        let existing_dirs: HashSet<PathBuf> = self
-            .dirs
+        let existing_dirs: HashSet<_> = dirs
             .iter()
             .filter(|&dir| conf::test_path!(&dir, "dir"))
             .map(PathBuf::from)
             .collect();
 
-        let non_existing_dirs = self.dirs.difference(&existing_dirs);
+        let non_existing_dirs = dirs.difference(&existing_dirs);
         for dir in non_existing_dirs {
             log::warn!(
-            "Watching directory `{:#?}` doesn't exist, can't be expanded or isn't a directory. Not using it",
-            dir
-        );
+                "Watching directory `{:#?}` doesn't exist, can't be expanded or isn't a directory. Not using it",
+                dir
+            );
         }
 
-        self.dirs = existing_dirs;
-        if self.dirs.is_empty() {
-            log::error!("No directories set up, or none of them exist ! Exiting");
+        if existing_dirs.is_empty() {
+            if mutates {
+                log::error!("No directories set up, or none of them exist ! Exiting");
+            } else {
+                log::warn!("No directories set up, or none of them exist");
+            }
             fatal = true;
         }
 
-        if !(conf::test_path!(&self.dest, "dir")) {
-            log::error!(
-                "Destination `{:#?}` doesn't exist, or isn't a directory ! Exiting",
-                self.dest
-            );
+        if !(conf::test_path!(&dest, "dir")) {
+            if mutates {
+                log::error!(
+                    "Destination `{:#?}` doesn't exist, or isn't a directory ! Exiting",
+                    dest
+                );
+            } else {
+                log::warn!(
+                    "Destination `{:#?}` doesn't exist, or isn't a directory",
+                    dest
+                );
+            }
             fatal = true;
         }
 
@@ -107,11 +123,14 @@ impl conf::Config {
                 self.codes[key]
             );
         }
-        self.codes = valid_codes;
 
-        if self.codes.is_empty() {
-            log::error!("No shortcut set up, or none of them are valid ! Exiting");
-            fatal = true;
+        if valid_codes.is_empty() {
+            if mutates {
+                log::error!("No shortcut set up, or none of them are valid ! Exiting");
+            } else {
+                log::warn!("No shortcut set up, or none of them are valid");
+            }
+            true_fatal = true;
         }
 
         if self.begin_var == self.end_var {
@@ -120,11 +139,17 @@ impl conf::Config {
                 self.begin_var,
                 self.end_var
             );
-            fatal = true;
+            true_fatal = true;
+        }
+
+        if mutates {
+            self.dest = dest;
+            self.dirs = existing_dirs;
+            self.codes = valid_codes;
         }
 
         log::debug!("Here's the config : {:#?}", self);
 
-        fatal
+        true_fatal || (fatal && mutates)
     }
 }
