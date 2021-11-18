@@ -70,7 +70,7 @@ pub struct Cli {
     pub verbose: clap_verbosity_flag::Verbosity,
 
     /// Generates completion script for shell and output it
-    #[structopt(long, value_name = "shell")]
+    #[structopt(long, value_name = "shell", possible_values(&Shell::variants()))]
     completion: Option<Shell>,
 
     /// Disables configuration reloading on configuration file change

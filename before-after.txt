@@ -1,13 +1,18 @@
 config file :
 ---
-dest: ~/Documents
-dirs:
-  - ~/Documents-source
-
+separator: "."
+filename_separators: 1
+begin_var: "<"
+end_var: ">"
 once: false
 timeinfo: false
 static_mode: false
 sleep: 1000
+
+dest: ~/Documents
+dirs:
+  - ~/Documents-source
+
 
 codes:
   hst: History
@@ -28,22 +33,14 @@ codes:
 
 Before :
 ~/Documents-source/hst/<fr> <hst>.18th <cnt>.Consulate.pdf
-
 ~/Documents-source/Computer/cs.algorithms and data structures.dvi
-
 ~/Documents-source/very/deep/meaning/gr.statues weren't white.mp4
-
 ~/Documents-source/such/nested/asg.mt.integration.tex
-
 ~/Documents-source/chin.Great Wall.odt
 
 After :
 ~/Documents/French History/18th Century/Consulate.pdf
-
 ~/Documents/Computer Science/algorithms and data structures.dvi
-
 ~/Documents/Greek/statues weren't white.mp4
-
 ~/Documents/Assignments/Mathematics/integration.tex
-
 ~/Documents/Chinese/Great Wall.odt
