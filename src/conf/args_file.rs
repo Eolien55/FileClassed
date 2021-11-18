@@ -38,7 +38,8 @@ impl conf::Config {
                     log::warn!("Error while expanding destination : {}", e.to_string());
                 }
                 fatal = true;
-                return true_fatal || (fatal && mutates);
+
+                dest = self.dest.clone();
             }
         }
         let dirs: HashSet<_> = self
@@ -52,10 +53,6 @@ impl conf::Config {
                 }
             })
             .collect();
-
-        if fatal {
-            return fatal;
-        }
 
         let existing_dirs: HashSet<_> = dirs
             .iter()
@@ -125,11 +122,7 @@ impl conf::Config {
         }
 
         if valid_codes.is_empty() {
-            if mutates {
-                log::error!("No shortcut set up, or none of them are valid ! Exiting");
-            } else {
-                log::warn!("No shortcut set up, or none of them are valid");
-            }
+            log::error!("No shortcut set up, or none of them are valid ! Exiting");
             true_fatal = true;
         }
 

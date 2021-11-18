@@ -85,19 +85,22 @@ pub struct Cli {
     generate_config: bool,
 
     /// Set the separator to separate each filename part
-    #[structopt(short = "-p", long)]
+    #[structopt(short = "-p", long, value_name="char")]
     separator: Option<char>,
 
-    /// Set the number of characters that are the separator ('.' by default) in the filename
-    #[structopt(short, long)]
+    /// Set the number of characters that are the separator
+    /// ('.' by default) in the filename
+    #[structopt(short, long, value_name="number")]
     filename_separators: Option<usize>,
 
-    /// Set the character to detect a variable 'lookup' ('{' by default)
-    #[structopt(short, long)]
+    /// Set the character to detect a variable 'lookup'
+    /// ('{' by default)
+    #[structopt(short, long, value_name="char")]
     begin_var: Option<char>,
 
-    /// Set the character to detect the end of a variable 'lookup' ('}' by default)
-    #[structopt(short, long)]
+    /// Set the character to detect the end of a variable 'lookup'
+    /// ('}' by default)
+    #[structopt(short, long, value_name="char")]
     end_var: Option<char>,
 }
 
