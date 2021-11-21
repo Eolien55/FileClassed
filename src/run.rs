@@ -167,11 +167,23 @@ pub fn get_new_name(
         let mut current: String = current[..current.len() - 1].to_string();
         next = splitted.1;
 
+        let mut should_be_decoded = true;
+
         while find_first_valid_opening_bracket(&current, var.0, var.1).is_some() {
             current = expand(&current, codes, var.0, var.1);
+            if should_be_decoded 
+            {
+                should_be_decoded = false;
+            }
         }
 
-        ending_path.push(decode!(&current, codes));
+        if should_be_decoded {
+            ending_path.push(decode!(&current, codes));
+        }
+
+        else {
+            ending_path.push(current);
+        }
     }
 
     if timeinfo {
