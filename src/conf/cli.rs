@@ -84,12 +84,11 @@ pub struct Cli {
     #[structopt(short, long)]
     generate_config: bool,
 
-    /// Set the separator to separate each filename part
+    /// Set the separator to separate each filename part ('.' by default)
     #[structopt(short = "-p", long, value_name="char")]
     separator: Option<char>,
 
-    /// Set the number of characters that are the separator
-    /// ('.' by default) in the filename
+    /// Set the number of characters that are the separator in the filename
     #[structopt(short, long, value_name="number")]
     filename_separators: Option<usize>,
 
