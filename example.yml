@@ -7,6 +7,7 @@ once: false
 timeinfo: false
 static_mode: false
 sleep: 1000
+
 codes:
   hst: History
   phi: Philosophy
@@ -19,6 +20,7 @@ codes:
   fr: French
   ch: Chemestry
   gr: Greek
+  
 dest: ~/Documents
 dirs:
   - ~/Documents-source

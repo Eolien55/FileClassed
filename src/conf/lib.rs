@@ -5,12 +5,6 @@ use std::path::PathBuf;
 
 use super::defaults;
 
-pub type CodesType = HashMap<String, ValType>;
-
-pub enum ValType {
-    String,
-    CodesType,
-}
 
 #[derive(Clone, Debug)]
 pub struct Config {
