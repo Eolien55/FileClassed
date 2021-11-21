@@ -65,7 +65,7 @@ Then, you should have a new program named fcs that works as stated before.
 
 Note that you can generate a config file by running fcs with the `-g` flag.
 
-The configuration file is located to `C:\Users\<User>\AppData\Roaming\fcs\init.yml` in Windows, `/home/<user>/.config/fcs/init.yml` for Linux and BSD operation systems, and `/Users/<User>/Library/Application Support` for MacOS.
+The configuration file is located to `C:\Users\<User>\AppData\Roaming\fcs\init.yml` in Windows, `/home/<user>/.config/fcs/init.yml` for Linux, \*BSD and other Unix-like operating systems, and `/Users/<User>/Library/Application Support/fcs/init.yml` for MacOS.
 
 There are multiple fields, and (almost) each of them corresponds to an option or a flag of this program.
 Refer to `fcs --help` for more information about each of the options.
@@ -85,6 +85,14 @@ The `timeinfo` field / CLI flag enables file info in the path. With `mt / Mathem
 The `codes` field / CLI option sets the "shortcuts".
 
 The `completion` CLI option generates shell specific completion script and print it to stdout.
+
+The `begin_var` field / CLI option sets the character to detect a variable 'lookup' ('{' by default).
+
+The `end_var` field / CLI option sets the character to detect the end of a variable 'lookup' ('}' by default).
+
+The `separator` field / CLI option sets the separator to separate each filename part ('.' by default).
+
+The `filename-separators` field / CLI option sets the number of characters that are the separator in the filename (1 by default).
 
 Note that the default values are in french, so you really should write your configuration file.
 

@@ -74,7 +74,7 @@ pub struct Cli {
     completion: Option<Shell>,
 
     /// Disables configuration reloading on configuration file change
-    #[structopt(short = "-S", long = "--static")]
+    #[structopt(short = "-S", long)]
     static_mode: bool,
 
     /// Generates configuration file from CLI arguments and output it
