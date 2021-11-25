@@ -265,6 +265,7 @@ fn make_tables(codes: &HashMap<String, String>, dest: &str) {
 
 static SHOULD_END: AtomicBool = AtomicBool::new(false);
 static CONFIG_CHANGED: AtomicBool = AtomicBool::new(false);
+static OPERATING: AtomicBool = AtomicBool::new(false);
 
 pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: String) {
     log::trace!("Creating tables");
@@ -300,6 +301,11 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
     let config_file_s = config_file.clone();
     let background_thread: Option<std::thread::JoinHandle<()>>;
     let (tx, rx) = mpsc::channel::<bool>();
+    let tx_s = tx.clone();
+
+    let (has_ended_t, has_ended_r) = mpsc::channel::<usize>();
+    let (start_cleanup_t, start_cleanup_r) = mpsc::channel::<usize>();
+    let start_cleanup_t_s = start_cleanup_t.clone();
 
     if path::Path::new(&config_file).exists() && !my_config.once && !my_config.static_mode {
         log::trace!("Setting up config watcher");
@@ -403,6 +409,8 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                     }
                 }
             }
+
+            has_ended_t.send(0).ok();
         }));
     } else {
         background_thread = None;
@@ -411,14 +419,38 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
     log::trace!("Setting up CTRL+C handler");
     ctrlc::set_handler(move || {
         println!("Received CTRL+C, ending.");
-        SHOULD_END.store(true, Ordering::SeqCst)
+        SHOULD_END.store(true, Ordering::SeqCst);
+
+        start_cleanup_t_s.send(0).ok();
     })
     .unwrap();
+
+    let cleanup_thread = std::thread::spawn(move || {
+        start_cleanup_r.recv().ok();
+
+        if let Some(_) = &background_thread {
+            log::trace!("Waiting for my watching child to end");
+            match tx_s.send(true) {
+                Ok(_) => (),
+                Err(_) => {
+                    log::warn!("I am disconnected from my child, but I was ending anyway so...");
+                }
+            }
+            has_ended_r.recv().ok();
+        }
+
+        while OPERATING.load(Ordering::SeqCst) {}
+
+        log::info!("Goodbye");
+        std::process::exit(exitcode::OK);
+    });
 
     let mut dirs = my_config.dirs.clone();
 
     log::trace!("Starting my job");
     'outer: while !SHOULD_END.load(Ordering::SeqCst) {
+        OPERATING.store(true, Ordering::SeqCst);
+
         for dir in &dirs {
             if !lib::test_path!(&dir, "dir") {
                 break;
@@ -463,6 +495,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         // Beyond this, users running with -o won't ever have to suffer the wait
         // of sending info to the other thread or to reload a configuration file,
         // or even worse, just sleeping
+        OPERATING.store(false, Ordering::SeqCst);
         sleep(time::Duration::from_millis(my_config.sleep as u64));
 
         if !my_config.static_mode {
@@ -524,14 +557,6 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         }
     }
 
-    if let Some(thread) = background_thread {
-        log::trace!("Waiting for my watching child to end");
-        match tx.send(true) {
-            Ok(_) => (),
-            Err(_) => {
-                log::warn!("I am disconnected from my child, but I was ending anyway so...");
-            }
-        }
-        thread.join().ok();
-    }
+    start_cleanup_t.send(0).ok();
+    cleanup_thread.join().ok();
 }

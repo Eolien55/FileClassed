@@ -37,7 +37,4 @@ fn main() {
 
     log::trace!("Ready to do the dirty job ! Configuration is ready");
     run::run(my_config, declared, config_file);
-
-    log::info!("Goodbye");
-    exit(exitcode::OK);
 }
