@@ -1,6 +1,6 @@
 [package]
 name = "fcs"
-version = "1.4.0"
+version = "1.4.2"
 edition = "2018"
 description = "Efficient yet customizable file organizer"
 license = "GPL-3.0-or-later"

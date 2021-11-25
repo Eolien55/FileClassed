@@ -138,7 +138,7 @@ impl conf::Config {
         if vec![self.begin_var, self.end_var].contains(&self.separator) {
             log::error!("The 'separator token' ({}) is identical to either the 'begin variable token' ({}) or the 'end variable token' ({})",
         self.separator, self.begin_var, self.end_var);
-        true_fatal = true;
+            true_fatal = true;
         }
 
         if mutates {

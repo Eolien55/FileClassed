@@ -54,6 +54,7 @@ pub fn bench_expand(c: &mut Criterion) {
                 black_box(&codes),
                 black_box('{'),
                 black_box('}'),
+                black_box(None),
             )
         })
     });

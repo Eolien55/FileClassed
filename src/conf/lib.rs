@@ -5,7 +5,6 @@ use std::path::PathBuf;
 
 use super::defaults;
 
-
 #[derive(Clone, Debug)]
 pub struct Config {
     pub once: bool,

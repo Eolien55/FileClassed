@@ -10,7 +10,7 @@ use std::io::prelude::*;
 use std::path;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    mpsc, Arc,
+    mpsc,
 };
 use std::thread::sleep;
 use std::time;
@@ -72,13 +72,17 @@ pub fn find_first_valid_opening_bracket(
     result
 }
 
+// fvop stands for First Valid Opening Bracket
 pub fn expand(
     input: &str,
     codes: &HashMap<String, String>,
     begin_var: char,
     end_var: char,
+    fvob: Option<usize>,
 ) -> String {
-    if let Some(mut next_seq_beg) = find_first_valid_opening_bracket(input, begin_var, end_var) {
+    if let Some(mut next_seq_beg) =
+        fvob.or(find_first_valid_opening_bracket(input, begin_var, end_var))
+    {
         let mut result = String::with_capacity(input.len());
 
         let mut input_str = input;
@@ -169,19 +173,16 @@ pub fn get_new_name(
 
         let mut should_be_decoded = true;
 
-        while find_first_valid_opening_bracket(&current, var.0, var.1).is_some() {
-            current = expand(&current, codes, var.0, var.1);
-            if should_be_decoded 
-            {
+        while let Some(fvob) = find_first_valid_opening_bracket(&current, var.0, var.1) {
+            current = expand(&current, codes, var.0, var.1, Some(fvob));
+            if should_be_decoded {
                 should_be_decoded = false;
             }
         }
 
         if should_be_decoded {
             ending_path.push(decode!(&current, codes));
-        }
-
-        else {
+        } else {
             ending_path.push(current);
         }
     }
@@ -262,23 +263,15 @@ fn make_tables(codes: &HashMap<String, String>, dest: &str) {
     log::debug!("Codes are : \n{}", shortcuts);
 }
 
+static SHOULD_END: AtomicBool = AtomicBool::new(false);
+static CONFIG_CHANGED: AtomicBool = AtomicBool::new(false);
+
 pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: String) {
     log::trace!("Creating tables");
     make_tables(&my_config.codes, my_config.dest.to_str().unwrap());
 
-    // Note : the <variable>_s is to read : "shared <variable>"
-    let should_end = Arc::new(AtomicBool::new(false));
-    let should_end_s = should_end.clone();
-
-    let config_changed = Arc::new(AtomicBool::new(false));
-    let config_changed_s = config_changed.clone();
-
-    let config_file_s = config_file.clone();
-    let mut background_thread: Option<std::thread::JoinHandle<()>> = None;
-    let (tx, rx) = mpsc::channel::<bool>();
-
     let handle_for_real_handle = |path: &path::Path, my_config: &lib::Config| -> Result<(), ()> {
-        if should_end.load(Ordering::SeqCst) {
+        if SHOULD_END.load(Ordering::SeqCst) {
             log::trace!("I'm supposed to end while handling files");
             return Err(());
         }
@@ -303,10 +296,14 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         Ok(())
     };
 
+    // Note : the <variable>_s is to read : "shared <variable>"
+    let config_file_s = config_file.clone();
+    let background_thread: Option<std::thread::JoinHandle<()>>;
+    let (tx, rx) = mpsc::channel::<bool>();
+
     if path::Path::new(&config_file).exists() && !my_config.once && !my_config.static_mode {
         log::trace!("Setting up config watcher");
 
-        let should_end_s_s = should_end_s.clone();
         let dest_s = my_config.dest.clone();
 
         background_thread = Some(std::thread::spawn(move || {
@@ -375,7 +372,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                             let new_last_change = file.metadata().unwrap().modified().unwrap();
 
                             if old_last_change < new_last_change {
-                                config_changed_s.store(true, Ordering::SeqCst);
+                                CONFIG_CHANGED.store(true, Ordering::SeqCst);
                                 old_last_change = new_last_change;
                             };
                         }
@@ -395,7 +392,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                     ))
                     .exists()
                     {
-                        should_end_s_s.store(true, Ordering::SeqCst);
+                        SHOULD_END.store(true, Ordering::SeqCst);
                         fs::remove_file(&format!(
                             "{}{}fcs-should_end",
                             dest_s.to_str().unwrap(),
@@ -407,19 +404,21 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                 }
             }
         }));
+    } else {
+        background_thread = None;
     }
 
     log::trace!("Setting up CTRL+C handler");
     ctrlc::set_handler(move || {
         println!("Received CTRL+C, ending.");
-        should_end_s.store(true, Ordering::SeqCst)
+        SHOULD_END.store(true, Ordering::SeqCst)
     })
     .unwrap();
 
     let mut dirs = my_config.dirs.clone();
 
     log::trace!("Starting my job");
-    'outer: while !should_end.load(Ordering::SeqCst) {
+    'outer: while !SHOULD_END.load(Ordering::SeqCst) {
         for dir in &dirs {
             if !lib::test_path!(&dir, "dir") {
                 break;
@@ -443,7 +442,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                 break 'outer;
             }
 
-            if should_end.load(Ordering::SeqCst) {
+            if SHOULD_END.load(Ordering::SeqCst) {
                 break 'outer;
             }
 
@@ -467,14 +466,14 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         sleep(time::Duration::from_millis(my_config.sleep as u64));
 
         if !my_config.static_mode {
-            if config_changed.load(Ordering::SeqCst) {
+            if CONFIG_CHANGED.load(Ordering::SeqCst) {
                 log::info!("Config changed ! Loading it");
 
-                config_changed.store(false, Ordering::SeqCst);
+                CONFIG_CHANGED.store(false, Ordering::SeqCst);
                 my_config.add_or_update_from_file(&mut config_file, &declared);
 
                 if my_config.clean(true) {
-                    should_end.store(true, Ordering::SeqCst);
+                    SHOULD_END.store(true, Ordering::SeqCst);
                 }
 
                 make_tables(&my_config.codes, my_config.dest.to_str().unwrap());
@@ -487,7 +486,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                         "Critical ! I'm disconnected from my child ! Exiting ! Note {}",
                         e.to_string()
                     );
-                    should_end.store(true, Ordering::SeqCst);
+                    SHOULD_END.store(true, Ordering::SeqCst);
                     break 'outer;
                 }
             }
