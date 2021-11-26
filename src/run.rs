@@ -10,7 +10,6 @@ use std::io::prelude::*;
 use std::path;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    mpsc,
 };
 use std::thread::sleep;
 use std::time;
@@ -263,16 +262,15 @@ fn make_tables(codes: &HashMap<String, String>, dest: &str) {
     log::debug!("Codes are : \n{}", shortcuts);
 }
 
-static SHOULD_END: AtomicBool = AtomicBool::new(false);
-static CONFIG_CHANGED: AtomicBool = AtomicBool::new(false);
 static OPERATING: AtomicBool = AtomicBool::new(false);
+static SHOULD_STOP_PROCESSING: AtomicBool = AtomicBool::new(false);
 
 pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: String) {
     log::trace!("Creating tables");
     make_tables(&my_config.codes, my_config.dest.to_str().unwrap());
 
     let handle_for_real_handle = |path: &path::Path, my_config: &lib::Config| -> Result<(), ()> {
-        if SHOULD_END.load(Ordering::SeqCst) {
+        if SHOULD_STOP_PROCESSING.load(Ordering::SeqCst) {
             log::trace!("I'm supposed to end while handling files");
             return Err(());
         }
@@ -297,158 +295,28 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         Ok(())
     };
 
-    // Note : the <variable>_s is to read : "shared <variable>"
-    let config_file_s = config_file.clone();
-    let background_thread: Option<std::thread::JoinHandle<()>>;
-    let (tx, rx) = mpsc::channel::<bool>();
-    let tx_s = tx.clone();
-
-    let (has_ended_t, has_ended_r) = mpsc::channel::<usize>();
-    let (start_cleanup_t, start_cleanup_r) = mpsc::channel::<usize>();
-    let start_cleanup_t_s = start_cleanup_t.clone();
-
-    if path::Path::new(&config_file).exists() && !my_config.once && !my_config.static_mode {
-        log::trace!("Setting up config watcher");
-
-        let dest_s = my_config.dest.clone();
-
-        background_thread = Some(std::thread::spawn(move || {
-            let mut old_last_change = time::SystemTime::now();
-
-            let mut should_run = true;
-            loop {
-                let opened_config_file = fs::File::open(&config_file_s);
-
-                match opened_config_file {
-                    Ok(result) => match result.metadata() {
-                        Ok(res) => match res.modified() {
-                            Ok(r) => {
-                                old_last_change = r;
-                                break;
-                            }
-                            Err(e) => log::warn!(
-                            "Unable to get modified field of config file. Still running. Note : {}",
-                            e.to_string()
-                        ),
-                        },
-                        Err(e) => log::warn!(
-                            "Unable to get metadata of config file. Still running. Note : {}",
-                            e.to_string()
-                        ),
-                    },
-                    Err(_) => log::warn!(
-                        "Config file `{}` doesn't seem to exist anymore. Child exiting",
-                        config_file_s
-                    ),
-                }
-
-                match rx.recv() {
-                    Ok(mesg) => {
-                        if mesg {
-                            should_run = false;
-                            break;
-                        }
-                    }
-                    Err(e) => {
-                        log::error!("Critical ! I'm disconnected from my parent process ! Exiting ! Note : {}", e.to_string());
-                        should_run = false;
-                        break;
-                    }
-                }
-            }
-
-            if should_run {
-                'main_loop: loop {
-                    match rx.recv() {
-                        Ok(mesg) => {
-                            if mesg {
-                                break 'main_loop;
-                            }
-                        }
-                        Err(e) => {
-                            log::error!("Critical ! I'm disconnected from my parent process ! Exiting ! Note : {}", e.to_string());
-                            break 'main_loop;
-                        }
-                    }
-
-                    let opened_config_file = fs::File::open(&config_file_s);
-
-                    match opened_config_file {
-                        Ok(file) => {
-                            let new_last_change = file.metadata().unwrap().modified().unwrap();
-
-                            if old_last_change < new_last_change {
-                                CONFIG_CHANGED.store(true, Ordering::SeqCst);
-                                old_last_change = new_last_change;
-                            };
-                        }
-
-                        Err(_) => {
-                            log::warn!(
-                                "Config file `{}` doesn't exist anymore ! Can't use it",
-                                config_file_s
-                            );
-                        }
-                    }
-
-                    if path::Path::new(&format!(
-                        "{}{}fcs-should_end",
-                        dest_s.to_str().unwrap(),
-                        path::MAIN_SEPARATOR
-                    ))
-                    .exists()
-                    {
-                        SHOULD_END.store(true, Ordering::SeqCst);
-                        fs::remove_file(&format!(
-                            "{}{}fcs-should_end",
-                            dest_s.to_str().unwrap(),
-                            path::MAIN_SEPARATOR
-                        ))
-                        .unwrap();
-                        break 'main_loop;
-                    }
-                }
-            }
-
-            has_ended_t.send(0).ok();
-        }));
-    } else {
-        background_thread = None;
-    }
-
-    log::trace!("Setting up CTRL+C handler");
-    ctrlc::set_handler(move || {
-        println!("Received CTRL+C, ending.");
-        SHOULD_END.store(true, Ordering::SeqCst);
-
-        start_cleanup_t_s.send(0).ok();
-    })
-    .unwrap();
-
-    let cleanup_thread = std::thread::spawn(move || {
-        start_cleanup_r.recv().ok();
-
-        if let Some(_) = &background_thread {
-            log::trace!("Waiting for my watching child to end");
-            match tx_s.send(true) {
-                Ok(_) => (),
-                Err(_) => {
-                    log::warn!("I am disconnected from my child, but I was ending anyway so...");
-                }
-            }
-            has_ended_r.recv().ok();
-        }
-
+    let cleanup = || {
+        SHOULD_STOP_PROCESSING.store(true, Ordering::SeqCst);
         while OPERATING.load(Ordering::SeqCst) {}
 
         log::info!("Goodbye");
         std::process::exit(exitcode::OK);
-    });
+    };
+
+    log::trace!("Setting up CTRL+C handler");
+    ctrlc::set_handler(move || {
+        println!("Received CTRL+C, ending.");
+
+        cleanup();
+    })
+    .unwrap();
 
     let mut dirs = my_config.dirs.clone();
 
+    let mut old_last_change = time::SystemTime::now();
+
     log::trace!("Starting my job");
-    'outer: while !SHOULD_END.load(Ordering::SeqCst) {
+    'outer: loop {
         OPERATING.store(true, Ordering::SeqCst);
 
         for dir in &dirs {
@@ -474,10 +342,6 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                 break 'outer;
             }
 
-            if SHOULD_END.load(Ordering::SeqCst) {
-                break 'outer;
-            }
-
             let error_hapenned: bool = files
                 .par_iter()
                 .map(|entry| handle_for_real_handle(&entry.to_owned(), &my_config))
@@ -497,30 +361,36 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         // or even worse, just sleeping
         OPERATING.store(false, Ordering::SeqCst);
         sleep(time::Duration::from_millis(my_config.sleep as u64));
+        if SHOULD_STOP_PROCESSING.load(Ordering::SeqCst) {
+            break 'outer;
+        }
 
         if !my_config.static_mode {
-            if CONFIG_CHANGED.load(Ordering::SeqCst) {
-                log::info!("Config changed ! Loading it");
+            let opened_config_file = fs::File::open(&config_file);
 
-                CONFIG_CHANGED.store(false, Ordering::SeqCst);
-                my_config.add_or_update_from_file(&mut config_file, &declared);
+            match opened_config_file {
+                Ok(file) => {
+                    let new_last_change = file.metadata().unwrap().modified().unwrap();
+                    
+                    if old_last_change < new_last_change {
+                        log::info!("Config changed ! Loading it");
 
-                if my_config.clean(true) {
-                    SHOULD_END.store(true, Ordering::SeqCst);
+                        my_config.add_or_update_from_file(&mut config_file, &declared);
+
+                        if my_config.clean(true) {
+                            SHOULD_STOP_PROCESSING.store(true, Ordering::SeqCst);
+                        }
+
+                        make_tables(&my_config.codes, my_config.dest.to_str().unwrap());
+                        old_last_change = new_last_change;
+                    };
                 }
-
-                make_tables(&my_config.codes, my_config.dest.to_str().unwrap());
-            }
-
-            match tx.send(false) {
-                Ok(_) => (),
-                Err(e) => {
-                    log::error!(
-                        "Critical ! I'm disconnected from my child ! Exiting ! Note {}",
-                        e.to_string()
+                
+                Err(_) => {
+                    log::warn!(
+                        "Config file `{}` doesn't exist anymore ! Can't use it",
+                        config_file
                     );
-                    SHOULD_END.store(true, Ordering::SeqCst);
-                    break 'outer;
                 }
             }
         }
@@ -557,6 +427,9 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
         }
     }
 
-    start_cleanup_t.send(0).ok();
-    cleanup_thread.join().ok();
+    if SHOULD_STOP_PROCESSING.load(Ordering::SeqCst) {
+        loop {
+            sleep(time::Duration::from_secs(100));
+        }
+    }
 }
