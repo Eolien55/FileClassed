@@ -45,12 +45,12 @@ impl lib::Config {
             }
         }
 
-        log::trace!("Reading `{}` for config", config_file);
+        log::trace!("Reading `{:#}` for config", config_file);
 
         match fs::read_to_string(&config_file) {
             Ok(reading_file) => match serde_yaml::from_str::<lib::ConfigSerDe>(&reading_file) {
                 Ok(from_file) => {
-                    log::debug!("Config from file : {:?}", from_file);
+                    log::debug!("Config from file : {:#?}", from_file);
                     let default = lib::Config::default();
                     replace_value!(
                         from_file,
@@ -73,14 +73,14 @@ impl lib::Config {
                 }
                 Err(e) => {
                     log::error!(
-                        "Error happenned while parsing config file `{}`. Falling back to defaults",
+                        "Error happenned while parsing config file `{:#}`. Falling back to defaults",
                         e.to_string()
                     );
                 }
             },
             Err(_) => {
                 log::error!(
-                    "Config file `{}` doesn't exist or isn't valid UTF-8. Falling back to defaults",
+                    "Config file `{:#}` doesn't exist or isn't valid UTF-8. Falling back to defaults",
                     config_file
                 );
             }

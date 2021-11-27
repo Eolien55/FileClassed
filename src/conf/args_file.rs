@@ -115,7 +115,7 @@ impl conf::Config {
 
         for key in invalid_codes_keys {
             log::warn!(
-                "Shortcut `{}={}` isn't valid ! Not using it",
+                "Shortcut `{:#}={:#}` isn't valid ! Not using it",
                 key,
                 self.codes[key]
             );

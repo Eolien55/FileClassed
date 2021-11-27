@@ -8,9 +8,7 @@ use std::error::Error;
 use std::fs;
 use std::io::prelude::*;
 use std::path;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::sleep;
 use std::time;
 
@@ -118,7 +116,6 @@ pub fn get_new_name(
     dest: &path::Path,
     codes: &HashMap<String, String>,
     timestamp: Option<time::SystemTime>,
-    timeinfo: bool,
     separator: (char, usize),
     var: (char, char),
 ) -> Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
@@ -126,6 +123,7 @@ pub fn get_new_name(
     let month_nb: usize;
     let mut month_str: String = "".to_string();
 
+    let timeinfo = timestamp.is_some();
     if timeinfo {
         let timestamp = timestamp
             .unwrap()
@@ -206,7 +204,7 @@ fn handle(
 ) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
         log::warn!(
-            "File `{}` disappeared before I could handle it !",
+            "File `{:#}` disappeared before I could handle it !",
             name.to_str().unwrap_or("ERROR WHEN DISPLAYING THE FILE")
         );
         return;
@@ -223,7 +221,6 @@ fn handle(
         dest,
         codes,
         timestamp,
-        timeinfo,
         separator,
         var,
     ) {
@@ -371,7 +368,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
             match opened_config_file {
                 Ok(file) => {
                     let new_last_change = file.metadata().unwrap().modified().unwrap();
-                    
+
                     if old_last_change < new_last_change {
                         log::info!("Config changed ! Loading it");
 
@@ -385,10 +382,10 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
                         old_last_change = new_last_change;
                     };
                 }
-                
+
                 Err(_) => {
                     log::warn!(
-                        "Config file `{}` doesn't exist anymore ! Can't use it",
+                        "Config file `{:#}` doesn't exist anymore ! Can't use it",
                         config_file
                     );
                 }
@@ -397,7 +394,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
 
         let non_existing_dirs: HashSet<path::PathBuf> = my_config
             .dirs
-            .iter()
+            .par_iter()
             .filter(|dir| !lib::test_path!(&dir, "dir"))
             .map(|dir| dir.to_owned())
             .collect();
