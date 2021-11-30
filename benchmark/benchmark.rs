@@ -80,6 +80,7 @@ fn get_new_name_without_errors(
 }
 
 pub fn bench_all(c: &mut Criterion) {
+    println!("Started benchmark");
     let destination = path::PathBuf::from("/home/some_user/Documents/");
     let codes: HashMap<String, String> = vec![
         ("pc", "Physique-Chimie"),
@@ -110,6 +111,8 @@ pub fn bench_all(c: &mut Criterion) {
             }
         }
     }
+
+    println!("Ending data gen");
 
     c.bench_function(format!("testing for {} files", files.len()).as_str(), |b| {
         b.iter(|| {

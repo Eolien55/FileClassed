@@ -78,7 +78,7 @@ pub fn expand(
     fvob: Option<usize>,
 ) -> String {
     if let Some(mut next_seq_beg) =
-        fvob.or(find_first_valid_opening_bracket(input, begin_var, end_var))
+        fvob.or_else(|| find_first_valid_opening_bracket(input, begin_var, end_var))
     {
         let mut result = String::with_capacity(input.len());
 
