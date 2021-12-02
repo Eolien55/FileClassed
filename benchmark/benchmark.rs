@@ -80,7 +80,6 @@ fn get_new_name_without_errors(
 }
 
 pub fn bench_all(c: &mut Criterion) {
-    println!("Started benchmark");
     let destination = path::PathBuf::from("/home/some_user/Documents/");
     let codes: HashMap<String, String> = vec![
         ("pc", "Physique-Chimie"),
@@ -93,7 +92,10 @@ pub fn bench_all(c: &mut Criterion) {
         ("info", "Informatique"),
         ("eps", "EPS"),
         ("vdc", "Vie de Classe"),
-    ].iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+    ]
+    .iter()
+    .map(|(k, v)| (k.to_string(), v.to_string()))
+    .collect();
 
     let mut files: Vec<path::PathBuf> = Vec::new();
 
@@ -112,11 +114,9 @@ pub fn bench_all(c: &mut Criterion) {
         }
     }
 
-    println!("Ending data gen");
-
     c.bench_function(format!("testing for {} files", files.len()).as_str(), |b| {
         b.iter(|| {
-            let _ : () = files
+            let _: () = files
                 .par_iter()
                 .map(|file_name| {
                     get_new_name_without_errors(
@@ -133,5 +133,11 @@ pub fn bench_all(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench_get_new_name, bench_expand, bench_brackets, bench_all);
+criterion_group!(
+    benches,
+    bench_get_new_name,
+    bench_expand,
+    bench_brackets,
+    bench_all,
+);
 criterion_main!(benches);
