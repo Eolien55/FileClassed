@@ -70,6 +70,7 @@ pub fn find_first_valid_opening_bracket(
 }
 
 // fvop stands for First Valid Opening Bracket
+#[inline]
 pub fn expand(
     input: &str,
     codes: &HashMap<String, String>,

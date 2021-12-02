@@ -41,7 +41,7 @@ name = "fcs"
 path = "src/lib.rs"
 
 [profile.release]
-lto = "fat"
+# lto = "fat"
 codegen-units = 1
 
 [dev-dependencies]
