@@ -54,7 +54,7 @@ pub fn bench_expand(c: &mut Criterion) {
                 black_box('{'),
                 black_box('}'),
                 black_box(None),
-                black_box(""),
+                black_box(&mut vec![]),
                 black_box(','),
             )
         })
