@@ -15,10 +15,54 @@ use std::time;
 use crate::conf::lib;
 use crate::conf::lib::{Config, DeclaredType};
 
-macro_rules! decode {
-    ($code:expr, $codes:expr) => {
-        $codes.get($code).unwrap_or($code)
-    };
+#[inline]
+pub fn expand_last(code : &String, last : &Vec<String>, last_token : char) -> String {
+    let mut length = last.len();
+    let mut code_tmp = code.to_owned();
+    let mut result: String = "".to_string();
+
+    while length > 0 {
+        result = "".to_string();
+        let scheme_to_find: String = (0..length).map(|_| last_token).collect();
+
+        while let Some(scheme_index) = code_tmp.find(&scheme_to_find) {
+            result.push_str(&code_tmp[..scheme_index]);
+
+            if code_tmp
+                .chars()
+                .nth(scheme_index + length + 1)
+                .map(|x| x != last_token)
+                .unwrap_or(true)
+            {
+                result.push_str(&last[length - 1]);
+            } else {
+                result.push_str(&code_tmp[scheme_index..scheme_index + length]);
+            }
+
+            code_tmp = code_tmp[scheme_index + length - 1..].to_string();
+
+            if code_tmp.len() == 0 {
+                break;
+            }
+
+            code_tmp = code_tmp[1..].to_string();
+        }
+
+        result.push_str(&code_tmp);
+        code_tmp = result.clone();
+
+        length -= 1;
+    }
+
+    result
+}
+
+#[inline]
+pub fn decode(
+    code: &String,
+    codes: &HashMap<String, String>
+) -> String {
+    codes.get(code).unwrap_or(code).clone()
 }
 
 #[inline]
@@ -77,6 +121,8 @@ pub fn expand(
     begin_var: char,
     end_var: char,
     fvob: Option<usize>,
+    last: &mut Vec<String>,
+    last_token: char,
 ) -> String {
     if let Some(mut next_seq_beg) =
         fvob.or_else(|| find_first_valid_opening_bracket(input, begin_var, end_var))
@@ -95,8 +141,10 @@ pub fn expand(
 
             next_seq_beg = match input_str.find(end_var) {
                 Some(res) => {
-                    let code = &input_str[1..res];
-                    result.push_str(decode!(&code.to_string(), codes));
+                    let code = &input_str[1..res].to_string();
+                    let code = expand_last(code, last, last_token);
+                    result.push_str(&decode(&code, codes));
+                    last.push(code.clone());
                     res + 1
                 }
                 None => next_seq_beg + 1,
@@ -119,6 +167,7 @@ pub fn get_new_name(
     timestamp: Option<time::SystemTime>,
     separator: (char, usize),
     var: (char, char),
+    last_token: char,
 ) -> Result<(path::PathBuf, path::PathBuf), Box<dyn Error>> {
     let mut year: String = "".to_string();
     let month_nb: usize;
@@ -163,26 +212,36 @@ pub fn get_new_name(
 
     let mut next: &str = name;
     let mut splitted: (&str, &str) = ("", "");
+    let mut last = vec![];
+    let mut current: String;
     while next.matches(separator.0).count() > separator.1 {
         splitted = next.split_at(next.find(separator.0).unwrap() + 1);
-        let current = splitted.0;
-        let mut current: String = current[..current.len() - 1].to_string();
+        let current_str = splitted.0;
+        current = current_str[..current_str.len() - 1].to_string();
         next = splitted.1;
 
         let mut should_be_decoded = true;
 
         while let Some(fvob) = find_first_valid_opening_bracket(&current, var.0, var.1) {
-            current = expand(&current, codes, var.0, var.1, Some(fvob));
-            if should_be_decoded {
-                should_be_decoded = false;
-            }
+            current = expand(
+                &current,
+                codes,
+                var.0,
+                var.1,
+                Some(fvob),
+                &mut last,
+                last_token,
+            );
+            should_be_decoded = false;
         }
 
         if should_be_decoded {
-            ending_path.push(decode!(&current, codes));
+            ending_path.push(decode(&expand_last(&current, &last, last_token), codes));
         } else {
-            ending_path.push(current);
+            ending_path.push(current.clone());
         }
+
+        last.push(current);
     }
 
     if timeinfo {
@@ -202,6 +261,7 @@ fn handle(
     timeinfo: bool,
     separator: (char, usize),
     var: (char, char),
+    last_token: char,
 ) {
     if !path::Path::new(name.to_str().unwrap()).exists() {
         log::warn!(
@@ -224,6 +284,7 @@ fn handle(
         timestamp,
         separator,
         var,
+        last_token,
     ) {
         Ok(result) => match fs::create_dir_all(&result.1) {
             Ok(_) => match fs::rename(&name, &result.0) {
@@ -288,6 +349,7 @@ pub fn run(mut my_config: Config, declared: DeclaredType, mut config_file: Strin
             my_config.timeinfo,
             (my_config.separator, my_config.filename_separators),
             (my_config.begin_var, my_config.end_var),
+            my_config.last_token,
         );
 
         Ok(())

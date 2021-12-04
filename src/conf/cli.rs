@@ -101,6 +101,11 @@ pub struct Cli {
     /// ('}' by default)
     #[structopt(short, long, value_name = "char")]
     end_var: Option<char>,
+
+    /// Set the character to expand to the last code
+    /// (',') by default
+    #[structopt(short, long, value_name = "char")]
+    last_token: Option<char>,
 }
 
 macro_rules! define_option {
@@ -135,7 +140,7 @@ macro_rules! define_bool {
 
 impl lib::Config {
     pub fn from_args(args: Cli) -> (Self, String, lib::DeclaredType) {
-        let mut declared: lib::DeclaredType = [false; 12];
+        let mut declared: lib::DeclaredType = [false; 13];
 
         if let Some(shell) = args.completion {
             let mut app = Cli::clap();
@@ -172,7 +177,8 @@ impl lib::Config {
             separator,
             filename_separators,
             begin_var,
-            end_var
+            end_var,
+            last_token
         );
 
         define_bool!(
@@ -210,6 +216,7 @@ impl lib::Config {
                 static_mode: Some(result.static_mode),
                 sleep: Some(result.sleep),
                 codes: Some(result.codes),
+                last_token: Some(result.last_token),
             };
 
             let deserialized = match serde_yaml::to_string(&yaml_result) {
@@ -250,6 +257,7 @@ fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
     let filename_separators = build_result.filename_separators.unwrap();
     let begin_var = build_result.begin_var.unwrap();
     let end_var = build_result.end_var.unwrap();
+    let last_token = build_result.last_token.unwrap();
 
     let once = build_result.once;
     let timeinfo = build_result.timeinfo;
@@ -267,5 +275,6 @@ fn convert_types(build_result: lib::BuildConfig) -> lib::Config {
         filename_separators,
         begin_var,
         end_var,
+        last_token,
     }
 }

@@ -18,6 +18,7 @@ pub struct Config {
     pub filename_separators: usize,
     pub begin_var: char,
     pub end_var: char,
+    pub last_token: char,
 }
 
 impl Config {
@@ -40,6 +41,7 @@ pub struct BuildConfig {
     pub filename_separators: Option<usize>,
     pub begin_var: Option<char>,
     pub end_var: Option<char>,
+    pub last_token: Option<char>,
 }
 
 impl BuildConfig {
@@ -49,7 +51,7 @@ impl BuildConfig {
     }
 }
 
-pub type DeclaredType = [bool; 12];
+pub type DeclaredType = [bool; 13];
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigSerDe {
@@ -57,6 +59,7 @@ pub struct ConfigSerDe {
     pub filename_separators: Option<usize>,
     pub begin_var: Option<char>,
     pub end_var: Option<char>,
+    pub last_token: Option<char>,
     pub once: Option<bool>,
     pub timeinfo: Option<bool>,
     pub static_mode: Option<bool>,

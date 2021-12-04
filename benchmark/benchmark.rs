@@ -30,6 +30,7 @@ pub fn bench_get_new_name(c: &mut Criterion) {
                 black_box(None),
                 (black_box('.'), black_box(1)),
                 (black_box('{'), black_box('}')),
+                black_box(','),
             )
         })
     });
@@ -53,6 +54,8 @@ pub fn bench_expand(c: &mut Criterion) {
                 black_box('{'),
                 black_box('}'),
                 black_box(None),
+                black_box(""),
+                black_box(','),
             )
         })
     });
@@ -75,8 +78,9 @@ fn get_new_name_without_errors(
     timestamp: Option<time::SystemTime>,
     separator: (char, usize),
     var: (char, char),
+    last_token: char,
 ) {
-    run::get_new_name(name, dest, codes, timestamp, separator, var).ok();
+    run::get_new_name(name, dest, codes, timestamp, separator, var, last_token).ok();
 }
 
 pub fn bench_all(c: &mut Criterion) {
@@ -126,6 +130,7 @@ pub fn bench_all(c: &mut Criterion) {
                         black_box(Some(time::SystemTime::now())),
                         black_box(('.', 1)),
                         black_box(('{', '}')),
+                        black_box(','),
                     )
                 })
                 .collect();

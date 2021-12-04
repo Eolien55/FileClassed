@@ -17,6 +17,7 @@ pub fn get_default() -> lib::Config {
         filename_separators: 1,
         begin_var: '{',
         end_var: '}',
+        last_token: ',',
     }
 }
 
@@ -41,5 +42,6 @@ pub fn get_build_default() -> lib::BuildConfig {
         filename_separators: Some(default.filename_separators),
         begin_var: Some(default.begin_var),
         end_var: Some(default.end_var),
+        last_token: Some(default.last_token),
     }
 }
