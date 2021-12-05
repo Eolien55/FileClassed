@@ -102,6 +102,11 @@ impl conf::Config {
                     && entry.0.matches('/').count() < 1
                     && !entry.1.is_empty()
                     && entry.1.matches('/').count() < 1
+                    && entry.0.matches(self.begin_var).count()
+                        + entry.0.matches(self.end_var).count()
+                        + entry.0.matches(self.separator).count()
+                        + entry.0.matches(self.last_token).count()
+                        < 1
             })
             .map(|entry| (entry.0.to_owned(), entry.1.to_owned()))
             .collect();
@@ -138,6 +143,12 @@ impl conf::Config {
         if vec![self.begin_var, self.end_var].contains(&self.separator) {
             log::error!("The 'separator token' ({}) is identical to either the 'begin variable token' ({}) or the 'end variable token' ({})",
         self.separator, self.begin_var, self.end_var);
+            true_fatal = true;
+        }
+
+        if vec![self.begin_var, self.end_var, self.separator].contains(&self.last_token) {
+            log::error!("The 'last token' ({}) is identical to either the 'begin variable token' ({}), the 'end variable token' ({}), or the 'separator token' ({})",
+        self.last_token, self.begin_var, self.end_var, self.last_token);
             true_fatal = true;
         }
 

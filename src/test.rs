@@ -131,17 +131,14 @@ fn test_decode() {
         .map(|x| x.to_string())
         .collect();
 
-    assert_eq!(
-        run::expand_last(&",,".to_string(), &history, ','),
-        "History"
-    );
+    assert_eq!(run::expand_last(&",,".to_string(), &history, ','), "hst");
+
+    assert_eq!(run::expand_last(&"fr".to_string(), &history, ','), "fr");
+
     assert_eq!(
         run::expand_last(&",,,,,,,,".to_string(), &history, ','),
-        ",,,,,,,,"
+        "shtwofr"
     );
-    assert_eq!(
-        run::expand_last(&",aa".to_string(), &history, ','),
-        ",aa"
-    );
+    assert_eq!(run::expand_last(&",aa".to_string(), &history, ','), "fraa");
     assert_eq!(run::expand_last(&"".to_string(), &history, ','), "");
 }

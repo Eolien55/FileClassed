@@ -16,10 +16,10 @@ use crate::conf::lib;
 use crate::conf::lib::{Config, DeclaredType};
 
 #[inline]
-pub fn expand_last(code : &String, last : &Vec<String>, last_token : char) -> String {
+pub fn expand_last(code: &String, last: &Vec<String>, last_token: char) -> String {
     let mut length = last.len();
     let mut code_tmp = code.to_owned();
-    let mut result: String = "".to_string();
+    let mut result: String = code.to_owned();
 
     while length > 0 {
         result = "".to_string();
@@ -28,16 +28,7 @@ pub fn expand_last(code : &String, last : &Vec<String>, last_token : char) -> St
         while let Some(scheme_index) = code_tmp.find(&scheme_to_find) {
             result.push_str(&code_tmp[..scheme_index]);
 
-            if code_tmp
-                .chars()
-                .nth(scheme_index + length + 1)
-                .map(|x| x != last_token)
-                .unwrap_or(true)
-            {
-                result.push_str(&last[length - 1]);
-            } else {
-                result.push_str(&code_tmp[scheme_index..scheme_index + length]);
-            }
+            result.push_str(&last[length - 1]);
 
             code_tmp = code_tmp[scheme_index + length - 1..].to_string();
 
@@ -58,11 +49,8 @@ pub fn expand_last(code : &String, last : &Vec<String>, last_token : char) -> St
 }
 
 #[inline]
-pub fn decode(
-    code: &String,
-    codes: &HashMap<String, String>
-) -> String {
-    codes.get(code).unwrap_or(code).clone()
+pub fn decode(code: &String, codes: &HashMap<String, String>) -> String {
+    codes.get(code).unwrap_or(code).to_owned()
 }
 
 #[inline]
